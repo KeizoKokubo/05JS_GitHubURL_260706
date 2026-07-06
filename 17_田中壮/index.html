@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パズルモンスターズ - 公式ポータル</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap');
+        body { font-family: 'M PLUS Rounded 1c', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+    <!-- Header -->
+    <header class="w-full bg-slate-800 border-b border-slate-700 py-6 px-4 shadow-md">
+        <div class="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-3xl font-black text-indigo-400 drop-shadow-lg tracking-wider">パズルモンスターズ</h1>
+            <div class="flex gap-4">
+                <a href="https://github.com/SoTanaka0409/javawebgame" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white transition-colors bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-full">
+                    <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+                    GitHub
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="max-w-4xl mx-auto px-4 py-12">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6">ブロックを動かして敵を討伐せよ！</h2>
+            <p class="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
+                パズルモンスターズは、ブラウザですぐに遊べる新感覚パズルRPGです。<br>
+                同じ色のブロックを揃えて敵にダメージを与え、迫りくる強敵たちを打ち倒そう！
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-6 mb-8">
+                <!-- Game Play Button -->
+                <a href="game.html" class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-full text-2xl transition-transform duration-200 shadow-[0_0_15px_rgba(99,102,241,0.5)] hover:scale-105 active:scale-95 flex items-center justify-center gap-3">
+                    <span class="text-3xl">🎮</span> ゲームをプレイする
+                </a>
+            </div>
+            
+            <!-- URL Links Box -->
+            <div class="bg-slate-800/50 inline-block p-4 rounded-xl border border-slate-700 text-left">
+                <div class="mb-2">
+                    <span class="text-xs font-bold text-slate-400 block mb-1">🎮 ゲームURL</span>
+                    <a href="https://SoTanaka0409.github.io/javawebgame/game.html" class="text-indigo-400 hover:underline text-sm md:text-base">https://SoTanaka0409.github.io/javawebgame/game.html</a>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-slate-400 block mb-1">🐙 GitHub URL</span>
+                    <a href="https://github.com/SoTanaka0409/javawebgame" class="text-indigo-400 hover:underline text-sm md:text-base">https://github.com/SoTanaka0409/javawebgame</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="bg-slate-800 rounded-3xl p-8 md:p-12 shadow-xl border border-slate-700">
+            <h3 class="text-3xl font-bold mb-8 text-center text-yellow-400">💡 開発の工夫・こだわった点</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-700">
+                    <div class="text-4xl mb-4">🔥💧🌳</div>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-300">属性の相性システム</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed">敵モンスターには属性が設定されており、消すブロックの色によってダメージが変動します。状況に合わせて消す色を変える戦略性を重視しました。</p>
+                </div>
+
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-700">
+                    <div class="text-4xl mb-4">✨⚔️</div>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-300">MPを使ったスキルシステム</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed">パズルを消してMPを貯めると、「クロス斬り」や「ヒール」などの強力なスキルが発動可能に。ピンチをチャンスに変える爽快感を作り込んでいます。</p>
+                </div>
+
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-700">
+                    <div class="text-4xl mb-4">🎵🔊</div>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-300">Web Audio APIによるサウンド</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed">外部の音声ファイルに頼らず、ブラウザ標準のWeb Audio APIを活用。コンボが続くたびに音程が上がるなど、リッチなサウンド体験を実現しました。</p>
+                </div>
+
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-700">
+                    <div class="text-4xl mb-4">🎨💻</div>
+                    <h4 class="text-xl font-bold mb-2 text-indigo-300">モダンなUIとアニメーション</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed">Tailwind CSSを使用し、HPバーの滑らかなアニメーションやボタンのエフェクトなど、プレイヤーが触っていて心地よいUIを目指しました。</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

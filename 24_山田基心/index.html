@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D探索型ホラー脱出ゲーム - ゲーム紹介</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-main: #f0f0f0;
+            --text-muted: #a0a0a0;
+            --accent-color: #e63946;
+            --accent-hover: #ff4d5a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 0%, #1a0b0e 0%, var(--bg-color) 70%);
+        }
+
+        h1, h2, h3 {
+            font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+        }
+
+        /* Header / Hero Section */
+        header {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 900;
+            letter-spacing: 4px;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: var(--accent-color);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            letter-spacing: 2px;
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+
+        .hero-desc {
+            max-width: 600px;
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+            animation: fadeIn 1s ease-out 0.6s both;
+        }
+
+        .play-btn {
+            display: inline-block;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(230, 57, 70, 0.4);
+            animation: fadeIn 1s ease-out 0.9s both;
+        }
+
+        .play-btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(230, 57, 70, 0.6);
+        }
+
+        /* Section Container */
+        .section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 4rem;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: var(--accent-color);
+            margin: 1rem auto 0;
+            border-radius: 2px;
+        }
+
+        /* About Section */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .about-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .about-text p {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .highlight {
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        /* Developer Focus Section (Cards) */
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+            border-color: rgba(230, 57, 70, 0.3);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        .card-desc {
+            color: var(--text-muted);
+        }
+
+        /* Game Iframe Section */
+        .game-embed-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            aspect-ratio: 16 / 9;
+            background-color: #000;
+            border: 2px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .game-embed-container::before {
+            content: 'Now Loading...';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-muted);
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 2px;
+            z-index: 0;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 3rem;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <header>
+        <h1 class="hero-title">3D Maze Horror</h1>
+        <div class="hero-subtitle">絶望の迷宮から生還せよ</div>
+        <p class="hero-desc">
+            迫り来る脅威、息詰まる緊張感。鍵を見つけ出し、無事に脱出することができるか。
+            ブラウザで遊べる3D探索型のホラー脱出ゲーム。
+        </p>
+        <a href="#play-section" class="play-btn">Play Now</a>
+    </header>
+
+    <!-- About Game Section -->
+    <section class="section">
+        <h2 class="section-title">ABOUT THE GAME</h2>
+        <div class="about-grid">
+            <div class="about-text">
+                <p>
+                    本作は、暗い迷宮を舞台にした<span class="highlight">3D探索型のホラーゲーム</span>です。
+                </p>
+                <p>
+                    プレイヤーは出口の扉を開くための「鍵」を求めて、入り組んだマップを探索します。しかし、迷宮には徘徊する未知の敵が存在しています。
+                </p>
+                <p>
+                    敵の視界や足音に細心の注意を払いながら、見つからないように進むステルス要素がスリルを生み出します。見つかってしまえば、執拗な追跡があなたを襲います。
+                </p>
+            </div>
+            <!-- 装飾用のプレースホルダー画像（世界観を演出） -->
+            <div style="background: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop') center/cover; border-radius: 12px; height: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); position: relative;">
+                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); border-radius: 12px;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Developer Focus Section -->
+    <section class="section" style="background-color: rgba(255,255,255,0.01);">
+        <h2 class="section-title">DEVELOPER FOCUS</h2>
+        <p style="text-align: center; color: var(--text-muted); max-width: 800px; margin: 0 auto 3rem;">
+            このゲームを開発するにあたり、最もこだわったのが「敵のAIロジックの設計」です。プレイヤーに恐怖と緊張感を与えるため、高度な行動パターンを実装しました。
+        </p>
+
+        <div class="cards-container">
+            <div class="card">
+                <div class="card-icon">🧠</div>
+                <h3 class="card-title">知的な経路探索</h3>
+                <p class="card-desc">
+                    プレイヤーが視界に入った際、単に一直線に向かってくるのではなく、マップの壁や障害物を迂回して最適なルートで追跡してくる経路探索アルゴリズム（Pathfinding）を構築しました。これにより、プレイヤーが角を曲がっても簡単には逃げ切れない絶望感を演出しています。
+                </p>
+            </div>
+            
+            <div class="card">
+                <div class="card-icon">👣</div>
+                <h3 class="card-title">徘徊行動の規則性</h3>
+                <p class="card-desc">
+                    敵がプレイヤーを見失った時や、通常時のパトロール行動にも細かな工夫を凝らしました。完全にランダムな動きではなく、一定の規則性を持たせることで、「敵の動きを予測して隙を突く」というプレイヤー側の戦略的プレイを可能にしています。
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">👁️</div>
+                <h3 class="card-title">視覚・聴覚センサー</h3>
+                <p class="card-desc">
+                    敵には「視界」と「聴覚」の概念を持たせています。プレイヤーの走る足音に反応して振り向いたり、視界の端に捉えたりするロジックにより、ホラーゲームに不可欠な「見つかるかもしれない恐怖」をシステムレベルで実現しました。
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Play Section -->
+    <section class="section" id="play-section">
+        <h2 class="section-title">PLAY GAME</h2>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">
+            PCブラウザでのプレイを推奨しています。画面をクリックしてスタートしてください。
+        </p>
+        <div class="game-embed-container">
+            <!-- ゲームの埋め込み -->
+            <iframe src="https://motomiyamada0223.github.io/htmlFinish/" title="3D Maze Horror Game" allow="fullscreen; pointer-lock"></iframe>
+        </div>
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="https://motomiyamada0223.github.io/htmlFinish/" target="_blank" style="color: var(--accent-color); text-decoration: none; border-bottom: 1px solid var(--accent-color); padding-bottom: 2px;">
+                フルスクリーンで開く（別タブ）
+            </a>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 3D Maze Horror Project. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // 簡単なスクロールアニメーション用のオブザーバー
+        document.addEventListener("DOMContentLoaded", () => {
+            const cards = document.querySelectorAll('.card');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry, index) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.style.opacity = '1';
+                            entry.target.style.transform = 'translateY(0)';
+                        }, index * 150);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            cards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>

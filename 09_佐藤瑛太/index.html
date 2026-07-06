@@ -3,16 +3,583 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="PRO 9-BALL 3D - ブラウザで遊べる本格3Dナインボールゲーム。リアルな物理演算と美しいグラフィックを体験しよう。">
+    <meta name="description" content="ブラウザで遊べる本格3Dナインボールゲーム。リアルな物理演算と美しいグラフィックを体験しよう。">
     <title>PRO 9-BALL 3D | 無料ブラウザゲーム</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="style.css">
-    <script src="script.js" defer></script>
+    <style>
+/* CSS Variables */
+:root {
+    /* Colors */
+    --bg-dark: #0a0e17;
+    --bg-darker: #05070a;
+    --primary: #00ff88;
+    --primary-glow: rgba(0, 255, 136, 0.4);
+    --secondary: #00d2ff;
+    --text-main: #f8f9fa;
+    --text-muted: #a0aec0;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    
+    /* Typography */
+    --font-sans: 'Inter', 'Noto Sans JP', sans-serif;
+    --font-display: 'Oswald', sans-serif;
+    
+    /* Transitions */
+    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* Utilities */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.section-title {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 3rem;
+    text-align: center;
+    background: linear-gradient(135deg, var(--text-main), var(--text-muted));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    display: inline-block;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 2px;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition-normal);
+    cursor: pointer;
+    border: none;
+    font-family: var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), #00cc6a);
+    color: var(--bg-darker);
+    box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px var(--primary-glow);
+    background: linear-gradient(135deg, #1aff99, #00e677);
+}
+
+.btn-large {
+    padding: 1.2rem 2.5rem;
+    font-size: 1.1rem;
+    border-radius: 50px;
+}
+
+.btn-glow {
+    position: relative;
+    background: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+.btn-glow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: var(--transition-normal);
+}
+
+.btn-glow:hover::before {
+    left: 100%;
+}
+
+.btn-glow:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
+    color: var(--primary);
+}
+
+/* Header */
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    transition: var(--transition-normal);
+    padding: 1.5rem 0;
+}
+
+.header.scrolled {
+    padding: 1rem 0;
+    background: rgba(5, 7, 10, 0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo span {
+    color: var(--primary);
+}
+
+/* Hero Section */
+.hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding-top: 80px;
+    overflow: hidden;
+}
+
+.hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 80% 20%, rgba(0, 210, 255, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(0, 255, 136, 0.15) 0%, transparent 40%),
+        url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.03"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E'),
+        var(--bg-darker);
+    z-index: -2;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent, var(--bg-dark));
+    z-index: -1;
+}
+
+.hero-content {
+    max-width: 800px;
+    text-align: center;
+    margin: 0 auto;
+}
+
+.hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 5vw, 5rem);
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: fadeInUp 1s ease-out;
+}
+
+.hero-title span.accent {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    margin-bottom: 2.5rem;
+    max-width: 600px;
+    margin-inline: auto;
+    animation: fadeInUp 1s ease-out 0.2s backwards;
+}
+
+.hero-cta {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    animation: fadeInUp 1s ease-out 0.4s backwards;
+}
+
+/* Features Section */
+.features {
+    padding: 8rem 0;
+    background-color: var(--bg-dark);
+    position: relative;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 4rem;
+}
+
+.feature-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: var(--transition-normal);
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    transform: scaleX(0);
+    transition: var(--transition-normal);
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.feature-card:hover::before {
+    transform: scaleX(1);
+}
+
+.feature-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: rgba(0, 255, 136, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: var(--primary);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2) inset;
+    transition: var(--transition-normal);
+}
+
+.feature-card:hover .feature-icon-wrapper {
+    background: rgba(0, 255, 136, 0.2);
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);
+    transform: scale(1.1);
+}
+
+.feature-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    letter-spacing: 1px;
+}
+
+.feature-card p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+/* Controls Section */
+.controls {
+    padding: 8rem 0;
+    background: linear-gradient(to bottom, var(--bg-dark), var(--bg-darker));
+    position: relative;
+}
+
+.controls-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 4rem;
+}
+
+.control-item {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    min-width: 250px;
+    transition: var(--transition-fast);
+}
+
+.control-item:hover {
+    border-color: var(--secondary);
+    background: rgba(0, 210, 255, 0.05);
+}
+
+.control-key {
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    border-bottom-width: 4px;
+    border-radius: 8px;
+    padding: 0.8rem 1.2rem;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    min-width: 100px;
+    text-align: center;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.control-item:active .control-key {
+    transform: translateY(3px);
+    border-bottom-width: 1px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.control-desc {
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+/* CTA Banner */
+.cta-banner {
+    padding: 6rem 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.cta-banner::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(0, 255, 136, 0.1) 0%, transparent 70%);
+    z-index: -1;
+}
+
+.cta-banner h2 {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.cta-banner p {
+    color: var(--text-muted);
+    margin-bottom: 2.5rem;
+    font-size: 1.1rem;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--bg-darker);
+    padding: 3rem 0;
+    border-top: 1px solid var(--glass-border);
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+}
+
+.footer-logo {
+    opacity: 0.8;
+}
+
+.footer p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.animate-on-scroll.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .controls-wrapper {
+        flex-direction: column;
+    }
+    
+    .control-item {
+        width: 100%;
+    }
+}
+
+/* Language Switcher */
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.lang-links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+}
+
+.lang-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.lang-links a:hover,
+.lang-links a.active {
+    color: var(--primary);
+    font-weight: bold;
+}
+
+.lang-links .divider {
+    color: var(--glass-border);
+}
+
+    </style>
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Sticky Header
+    const header = document.querySelector('.header');
+    
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+    });
+
+    // Intersection Observer for scroll animations
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, observerOptions);
+
+    // Elements to animate
+    const animElements = document.querySelectorAll('.feature-card, .control-item, .section-title, .cta-banner h2, .cta-banner p');
+    
+    animElements.forEach(el => {
+        el.classList.add('animate-on-scroll');
+        observer.observe(el);
+    });
+});
+
+    </script>
 </head>
 <body>
 
@@ -21,11 +588,7 @@
         <div class="container nav-container">
             <div class="logo">PRO <span>9-BALL</span> 3D</div>
             <div class="nav-right">
-                <select id="lang-switch" class="lang-switch">
-                    <option value="ja">日本語</option>
-                    <option value="ko">한국어</option>
-                </select>
-                <a href="https://eitasato1121.github.io/JStest/" class="btn btn-primary" target="_blank" rel="noopener noreferrer" data-i18n="nav_play">今すぐプレイ</a>
+                <a href="https://eitasato1121.github.io/JStest/" class="btn btn-primary" target="_blank" rel="noopener noreferrer">今すぐプレイ</a>
             </div>
         </div>
     </header>
@@ -35,11 +598,11 @@
         <div class="hero-bg"></div>
         <div class="hero-overlay"></div>
         <div class="container hero-content">
-            <h1 class="hero-title" data-i18n="hero_title" style="word-break: keep-all; overflow-wrap: anywhere;">完璧な物理演算。究極の3Dナインボール。</h1>
-            <p class="hero-subtitle" data-i18n="hero_subtitle">ブラウザでプレイ可能な究極の3Dビリヤード（ナインボール）体験。リアルな挙動、洗練されたコントロール、そして圧倒的なグラフィック。</p>
+            <h1 class="hero-title" style="word-break: keep-all; overflow-wrap: anywhere;">完璧な物理演算。<br>究極の3Dナインボール。</h1>
+            <p class="hero-subtitle">ブラウザでプレイ可能な究極の3Dビリヤード（ナインボール）体験。<br>リアルな挙動、洗練されたコントロール、<br>そして圧倒的なグラフィック。</p>
             <div class="hero-cta">
                 <a href="https://eitasato1121.github.io/JStest/" class="btn btn-large btn-glow" target="_blank" rel="noopener noreferrer">
-                    <span data-i18n="hero_cta">無料でプレイ</span>
+                    <span>無料でプレイ</span>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </a>
             </div>
@@ -49,28 +612,28 @@
     <!-- Features Section -->
     <section class="features" id="features">
         <div class="container">
-            <h2 class="section-title" data-i18n="features_title">ゲームの特徴</h2>
+            <h2 class="section-title">ゲームの特徴</h2>
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon-wrapper">
                         <div class="feature-icon" style="color: #f1c40f; font-weight: bold; font-size: 2.5rem; font-family: 'Oswald', sans-serif;">9</div>
                     </div>
-                    <h3 data-i18n="feat1_title">本格的なナインボール</h3>
-                    <p data-i18n="feat1_desc">公式ルールのナインボールを採用。ブレイクショットからのスリリングな展開を楽しめます。</p>
+                    <h3>本格的なナインボール</h3>
+                    <p>公式ルールのナインボールを採用。<br>ブレイクショットからのスリリングな<br>展開を楽しめます。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon-wrapper">
-                        <div class="feature-icon">✨</div>
+                        <div class="feature-icon">🎱</div>
                     </div>
-                    <h3 data-i18n="feat2_title">3D グラフィック</h3>
-                    <p data-i18n="feat2_desc">高品質な3Dレンダリング。美しい光と影が織りなす極上のプレイ空間。</p>
+                    <h3>3D グラフィック</h3>
+                    <p>高品質な3Dレンダリング。<br>美しい光と影が織りなす<br>極上のプレイ空間。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon-wrapper">
-                        <div class="feature-icon">🎮</div>
+                        <div class="feature-icon">⚙️</div>
                     </div>
-                    <h3 data-i18n="feat3_title">高度なコントロール</h3>
-                    <p data-i18n="feat3_desc">パワーチャージ、スピンコントロールなど、高度なテクニックを直感的なUIで操作可能。</p>
+                    <h3>高度なコントロール</h3>
+                    <p>パワーチャージ、スピンコントロールなど、<br>高度なテクニックを直感的なUIで<br>操作可能。</p>
                 </div>
             </div>
         </div>
@@ -79,27 +642,27 @@
     <!-- How to Play Section -->
     <section class="controls">
         <div class="container">
-            <h2 class="section-title" data-i18n="controls_title">遊び方</h2>
+            <h2 class="section-title">遊び方</h2>
             <div class="controls-wrapper">
                 <div class="control-item">
-                    <div class="control-key" data-i18n="ctrl1_key">左ドラッグ</div>
-                    <div class="control-desc" data-i18n="ctrl1_desc">視点移動・エイム</div>
+                    <div class="control-key">左ドラッグ</div>
+                    <div class="control-desc">視点移動・エイム</div>
                 </div>
                 <div class="control-item">
-                    <div class="control-key" data-i18n="ctrl2_key">スペース長押し</div>
-                    <div class="control-desc" data-i18n="ctrl2_desc">パワーチャージ</div>
+                    <div class="control-key">スペース長押し</div>
+                    <div class="control-desc">パワーチャージ</div>
                 </div>
                 <div class="control-item">
-                    <div class="control-key" data-i18n="ctrl3_key">スペース離す</div>
-                    <div class="control-desc" data-i18n="ctrl3_desc">ショット</div>
+                    <div class="control-key">スペース離す</div>
+                    <div class="control-desc">ショット</div>
                 </div>
                 <div class="control-item">
-                    <div class="control-key" data-i18n="ctrl4_key">左下 UI</div>
-                    <div class="control-desc" data-i18n="ctrl4_desc">スピン設定</div>
+                    <div class="control-key">左上UI</div>
+                    <div class="control-desc">スピン設定</div>
                 </div>
                 <div class="control-item">
-                    <div class="control-key" data-i18n="ctrl5_key">C キー</div>
-                    <div class="control-desc" data-i18n="ctrl5_desc">カメラ視点変更</div>
+                    <div class="control-key">C キー</div>
+                    <div class="control-desc">カメラ視点変更</div>
                 </div>
             </div>
         </div>
@@ -108,9 +671,9 @@
     <!-- Call to Action Banner -->
     <section class="cta-banner">
         <div class="container">
-            <h2 data-i18n="cta_title">テーブルに立つ準備はできましたか？</h2>
-            <p data-i18n="cta_desc">インストール不要、ブラウザですぐにプレイ可能です。</p>
-            <a href="https://eitasato1121.github.io/JStest/" class="btn btn-large" target="_blank" rel="noopener noreferrer" data-i18n="cta_btn">ゲームを開始する</a>
+            <h2>テーブルに立つ準備はできましたか？</h2>
+            <p>インストール不要、<br>ブラウザですぐにプレイ可能です。</p>
+            <a href="https://eitasato1121.github.io/JStest/" class="btn btn-large" target="_blank" rel="noopener noreferrer">ゲームを開始する</a>
         </div>
     </section>
 
@@ -119,7 +682,7 @@
         <div class="container">
             <div class="footer-content">
                 <div class="logo footer-logo">PRO <span>9-BALL</span> 3D</div>
-                <p>&copy; 2026 PRO 9-BALL 3D. All rights reserved.</p>
+                <p>&copy; 2026 PRO 9-BALL 3D. 無断転載を禁じます。</p>
             </div>
         </div>
     </footer>

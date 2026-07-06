@@ -1,109 +1,173 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CYBER FEVER 3D - Portal</title>
-  <!-- 自動リダイレクト (3秒後にゲームへ) -->
-  <meta http-equiv="refresh" content="3;url=https://eikichitanaka.github.io/HTMMMML/index.html">
+  <title>CYBER FEVER 3D - アピールポイント</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-color: #050409;
+      --bg-color: #0b0c10;
+      --card-bg: rgba(15, 17, 26, 0.9);
+      --card-border: rgba(0, 240, 255, 0.2);
       --cyan-neon: #00f0ff;
       --gold-neon: #ffd700;
+      --text-main: #c5c6c7;
       --font-title: 'Orbitron', sans-serif;
       --font-body: 'Noto Sans JP', sans-serif;
     }
     body {
       background-color: var(--bg-color);
-      color: #ffffff;
+      color: var(--text-main);
       font-family: var(--font-body);
+      margin: 0;
+      padding: 40px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      overflow: hidden;
       background-image: 
-        radial-gradient(circle at 50% 50%, rgba(20, 10, 45, 0.6) 0%, transparent 80%),
-        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 40px 40px, 40px 40px;
+        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.1) 0%, transparent 60%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
-    .portal-card {
-      background: rgba(13, 12, 21, 0.85);
-      border: 2px solid var(--cyan-neon);
-      box-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
-      border-radius: 12px;
-      padding: 40px;
-      text-align: center;
-      max-width: 500px;
-      width: 90%;
-      backdrop-filter: blur(8px);
+    .container {
+      max-width: 800px;
+      width: 100%;
     }
     h1 {
       font-family: var(--font-title);
-      font-size: 2.5rem;
-      margin: 0 0 10px 0;
-      background: linear-gradient(to bottom, #ffffff, var(--cyan-neon));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+      font-size: 4rem;
+      text-align: center;
+      margin: 0;
+      color: var(--cyan-neon);
+      text-shadow: 0 0 15px rgba(0, 240, 255, 0.6), 0 0 30px rgba(0, 240, 255, 0.4);
       letter-spacing: 2px;
     }
-    p {
-      color: #a0a5c5;
-      font-size: 1rem;
-      line-height: 1.6;
-      margin: 0 0 30px 0;
+    .subtitle {
+      text-align: center;
+      color: #708090;
+      font-size: 1.1rem;
+      margin-top: 10px;
+      margin-bottom: 50px;
     }
-    .btn-launch {
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    .card-title {
+      color: var(--cyan-neon);
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+      padding-bottom: 10px;
+      display: inline-block;
+    }
+    .concept-text {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #ffffff;
+      margin-bottom: 15px;
+    }
+    .desc-text {
+      line-height: 1.8;
+      font-size: 0.95rem;
+    }
+    .point-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .point-list li {
+      margin-bottom: 25px;
+      line-height: 1.7;
+    }
+    .point-list li:last-child {
+      margin-bottom: 0;
+    }
+    .highlight {
+      color: var(--gold-neon);
+      font-weight: 700;
+      margin-right: 5px;
+    }
+    .btn-container {
+      text-align: center;
+      margin-top: 50px;
+      margin-bottom: 30px;
+    }
+    .btn-play {
       display: inline-block;
       font-family: var(--font-title);
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       font-weight: 900;
-      color: #ffffff;
+      color: var(--cyan-neon);
       text-decoration: none;
-      background: transparent;
-      border: 2px solid var(--gold-neon);
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-      border-radius: 30px;
-      padding: 15px 40px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid var(--cyan-neon);
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.1);
+      border-radius: 40px;
+      padding: 15px 60px;
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: all 0.3s ease;
       letter-spacing: 2px;
-      animation: pulse 1.5s infinite alternate;
     }
-    .btn-launch:hover {
-      background: var(--gold-neon);
-      color: #000000;
-      box-shadow: 0 0 30px var(--gold-neon);
+    .btn-play:hover {
+      background: var(--cyan-neon);
+      color: #000;
+      box-shadow: 0 0 30px var(--cyan-neon), inset 0 0 20px rgba(255, 255, 255, 0.5);
       transform: scale(1.05);
     }
-    .redirect-notice {
-      font-size: 0.85rem;
-      color: #707595;
-      margin-top: 25px;
-    }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); border-color: rgba(255, 215, 0, 0.6); }
-      100% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.7); border-color: rgba(255, 215, 0, 1.0); }
+    @media (max-width: 600px) {
+      h1 { font-size: 2.5rem; }
+      .card { padding: 20px; }
+      .card-title { font-size: 1.4rem; }
     }
   </style>
 </head>
 <body>
 
-  <div class="portal-card">
+  <div class="container">
     <h1>CYBER FEVER 3D</h1>
-    <p>3Dシューティングとパチスロ目押しが融合した、究極のブラウザスロットFPS。</p>
-    
-    <a href="https://eikichitanaka.github.io/HTMMMML/index.html" class="btn-launch">LAUNCH GAME</a>
-    
-    <div class="redirect-notice">
-      ※クリックするか、3秒後に自動でゲーム公開ページへ遷移します。
+    <div class="subtitle">3Dシューティング × パチスロ目押し - 究極のブラウザスロットFPS</div>
+
+    <div class="card">
+      <div class="card-title">コンセプト</div>
+      <div class="concept-text">「フルスクラッチの3D空間で展開される、ガチ目押しと弾幕の融合」</div>
+      <div class="desc-text">
+        外部の3Dライブラリを使用せず、HTML5 Canvasと純粋な数学関数のみで描画されるサイバーパンクな奥行き空間。プレイヤーは迫り来る敵の弾幕を避けながら、同時にスロットの「ガチ目押し」を成功させることで、ド派手な演出と圧倒的な爽快感を得られる、新感覚のアクションゲームです。
+      </div>
     </div>
+
+    <div class="card">
+      <div class="card-title">ゲームの工夫ポイント</div>
+      <ul class="point-list">
+        <li>
+          <span class="highlight">フルスクラッチでの擬似3D空間の計算と描画：</span>外部の3Dライブラリを使わず、純粋なJavaScriptの数学関数（三角関数）とCanvasのみを使って、奥行きのある3Dシューティング空間をゼロから計算して描画しました。Z軸を考慮した遠近法や、当たり判定の計算にとても苦労しました！
+        </li>
+        <li>
+          <span class="highlight">シューティングと「ガチ目押しスロット」の並行処理：</span>3Dシューティングエリアとパチスロのリール回転処理を1つのゲーム内で競合しないように制御しました。目押し中の「時間停止」や、大当たり時のフリーズなど、複雑な状態遷移バグを起こさないためのプログラム設計にこだわりました。
+        </li>
+        <li>
+          <span class="highlight">CSSとCanvasを駆使した「サイバーパンク」なネオン演出：</span>レトロゲーム風の良さを残しつつ、現代的なサイバーパンク感を出すために配色にこだわりました。CSSアニメーション（レインボーフラッシュ等）と、Canvasのグロー効果を連動させ、大当たりした瞬間に視覚的に最高に気持ちよくなる「ド派手な光の演出」を作り込みました。
+        </li>
+        <li>
+          <span class="highlight">プレイヤーを熱くさせるゲームバランスとアルゴリズム：</span>単調にならないよう、ボスの弾が徐々に加速して迫ってくる「緩急弾」のアルゴリズムを実装しました。また、子役の回復システムや、ハズレからの「大逆転リール逆回転」など、プレイヤーが理不尽さを感じずギリギリの戦いを楽しめる絶妙な難易度調整に時間をかけました。
+        </li>
+      </ul>
+    </div>
+
+    <div class="btn-container">
+      <a href="https://eikichitanaka.github.io/HTMMMML/" class="btn-play">PLAY NOW</a>
+    </div>
+
   </div>
 
 </body>

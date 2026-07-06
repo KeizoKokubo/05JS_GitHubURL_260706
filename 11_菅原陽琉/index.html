@@ -106,13 +106,144 @@
             </div>
 
             <!-- ==========================================
+                 0. タイトル画面
+                 ========================================== -->
+            <div id="title-screen" class="absolute inset-0 bg-slate-950 flex flex-col z-20 overflow-hidden">
+
+                <!-- 背景：動くグリッドライン -->
+                <div class="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div style="
+                        background-image: linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px),
+                                          linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px);
+                        background-size: 48px 48px;
+                        width: 100%; height: 100%;
+                    "></div>
+                    <!-- コーナーの光彩 -->
+                    <div style="position:absolute;top:-80px;left:-80px;width:320px;height:320px;background:radial-gradient(circle,rgba(99,102,241,0.18) 0%,transparent 70%);"></div>
+                    <div style="position:absolute;bottom:-80px;right:-80px;width:320px;height:320px;background:radial-gradient(circle,rgba(6,182,212,0.15) 0%,transparent 70%);"></div>
+                </div>
+
+                <!-- ── 上：ゲームタイトル ── -->
+                <div class="relative flex-shrink-0 pt-7 md:pt-9 px-6 text-center">
+                    <span class="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded-full text-[10px] font-bold tracking-[0.25em] uppercase font-hud mb-4 inline-block">
+                        CYBER RUNNER PROJECT
+                    </span>
+
+                    <!-- メインタイトル（ネオングロー） -->
+                    <h2 class="text-5xl md:text-6xl font-black tracking-[0.1em] font-hud"
+                        style="
+                            background: linear-gradient(90deg, #818cf8 0%, #22d3ee 50%, #818cf8 100%);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
+                            background-clip: text;
+                            filter: drop-shadow(0 0 16px rgba(99,102,241,0.7));
+                        ">
+                        GRAVITY_SHIFT
+                    </h2>
+                    <p class="text-slate-500 text-xs mt-2 font-hud tracking-[0.2em]">
+                        重力反転 × スキル駆け抜けアクション
+                    </p>
+
+                    <!-- タイトル下の区切りライン -->
+                    <div class="mx-auto mt-4 w-24 h-px"
+                         style="background:linear-gradient(90deg,transparent,rgba(99,102,241,0.7),transparent);"></div>
+                </div>
+
+                <!-- ── 中：コンセプト ── -->
+                <div class="relative flex-1 flex items-center justify-center px-6 md:px-16">
+                    <div class="max-w-xl text-center">
+                        <span class="text-cyan-400 text-[10px] font-bold tracking-[0.3em] font-hud block mb-3">
+                            ─── CONCEPT ───
+                        </span>
+                        <p class="text-slate-100 text-sm md:text-base leading-loose">
+                            上下2レーンを <strong class="text-white">重力反転</strong> で行き来し、<br>
+                            迫り来る障害物を避け走り続ける
+                            <strong class="text-indigo-400">サイバーパンク風ランナー</strong>。
+                        </p>
+                        <p class="text-slate-400 text-xs md:text-sm mt-3 leading-loose">
+                            障害物を避けるほどスキルゲージが溜まり、<br>
+                            タイミングを見計らって <strong class="text-amber-400">無敵スキル</strong> を発動。<br>
+                            <span class="text-slate-500">一気に駆け抜けろ。</span>
+                        </p>
+
+                        <!-- コンセプトを囲む薄い枠 -->
+                        <div class="mt-5 mx-auto max-w-xs h-px"
+                             style="background:linear-gradient(90deg,transparent,rgba(6,182,212,0.5),transparent);"></div>
+                    </div>
+                </div>
+
+                <!-- ── 下：工夫ポイント ── -->
+                <div class="relative flex-shrink-0 px-5 pb-6 md:pb-8">
+                    <span class="text-amber-400 text-[10px] font-bold tracking-[0.3em] font-hud block text-center mb-3">
+                        ─── FEATURES ───
+                    </span>
+
+                    <!-- 3つの特徴カード -->
+                    <div class="grid grid-cols-3 gap-2 md:gap-3 max-w-2xl mx-auto mb-5">
+
+                        <!-- 特徴1 -->
+                        <div class="relative bg-slate-900 border border-indigo-500/30 rounded-xl p-3 text-center overflow-hidden"
+                             style="box-shadow:0 0 12px rgba(99,102,241,0.15);">
+                            <div class="absolute inset-0 opacity-5"
+                                 style="background:linear-gradient(135deg,#6366f1,transparent);"></div>
+                            <i data-lucide="repeat" class="w-5 h-5 text-indigo-400 mx-auto mb-1.5"></i>
+                            <p class="text-[11px] font-black text-white font-hud tracking-wide">重力反転操作</p>
+                            <p class="text-[9px] text-slate-400 mt-1 leading-snug">
+                                SPACE / タップで<br>上下を瞬時に切替。<br>フェイントが鍵。
+                            </p>
+                        </div>
+
+                        <!-- 特徴2 -->
+                        <div class="relative bg-slate-900 border border-amber-500/30 rounded-xl p-3 text-center overflow-hidden"
+                             style="box-shadow:0 0 12px rgba(251,191,36,0.12);">
+                            <div class="absolute inset-0 opacity-5"
+                                 style="background:linear-gradient(135deg,#f59e0b,transparent);"></div>
+                            <i data-lucide="zap" class="w-5 h-5 text-amber-400 mx-auto mb-1.5"></i>
+                            <p class="text-[11px] font-black text-white font-hud tracking-wide">2段階スキル</p>
+                            <p class="text-[9px] text-slate-400 mt-1 leading-snug">
+                                Lv.1 シールド<br>Lv.2 虚空加速。<br>ゲージ管理が勝負。
+                            </p>
+                        </div>
+
+                        <!-- 特徴3 -->
+                        <div class="relative bg-slate-900 border border-pink-500/30 rounded-xl p-3 text-center overflow-hidden"
+                             style="box-shadow:0 0 12px rgba(236,72,153,0.12);">
+                            <div class="absolute inset-0 opacity-5"
+                                 style="background:linear-gradient(135deg,#ec4899,transparent);"></div>
+                            <i data-lucide="flame" class="w-5 h-5 text-pink-400 mx-auto mb-1.5"></i>
+                            <p class="text-[11px] font-black text-white font-hud tracking-wide">3つのモード</p>
+                            <p class="text-[9px] text-slate-400 mt-1 leading-snug">
+                                王道・二択・混沌。<br>難易度とギミックが<br>それぞれ変化。
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- スタートボタン -->
+                    <div class="flex justify-center">
+                        <button onclick="showModeSelect()"
+                                class="group relative px-14 py-3.5 font-bold text-sm tracking-[0.2em] rounded-xl font-hud overflow-hidden transition-all duration-200 hover:scale-105"
+                                style="background:linear-gradient(90deg,#4f46e5,#06b6d4);box-shadow:0 0 24px rgba(99,102,241,0.4);">
+                            <span class="relative z-10 text-white">LAUNCH RUNNER →</span>
+                            <!-- hover時の内側グロー -->
+                            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                 style="background:linear-gradient(90deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05));"></div>
+                        </button>
+                    </div>
+                    <p class="text-slate-700 text-[10px] text-center mt-2.5 font-hud tracking-wider">
+                        SPACE / ENTER でモード選択へ
+                    </p>
+                </div>
+            </div>
+
+
+            <!-- ==========================================
                  1. モード選択＆メインメニュー
                  ========================================== -->
-            <div id="menu-screen" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 md:p-12 z-20 overflow-y-auto">
+            <div id="menu-screen" class="hidden absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 md:p-12 z-20 overflow-y-auto">
                 <div class="text-center mb-6">
-                    <span class="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded-full text-xs font-bold tracking-widest uppercase font-hud mb-3 inline-block">SYSTEM: ONLINE</span>
-                    <h2 class="text-4xl md:text-5xl font-black text-white tracking-widest font-hud">GRAVITY_SHIFT</h2>
-                    <p class="text-slate-400 text-sm mt-1">障害物を避けてスキルゲージを溜め、無敵化（SHIFTキー）で駆け抜けろ！</p>
+                    <span class="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded-full text-xs font-bold tracking-widest uppercase font-hud mb-3 inline-block">MODE SELECT</span>
+                    <h2 class="text-2xl md:text-3xl font-black text-white tracking-widest font-hud">SELECT YOUR RUN</h2>
+                    <p class="text-slate-400 text-sm mt-1">モードを選んで LAUNCH RUNNER を押せ</p>
                 </div>
 
                 <!-- モードセレクトカード -->
@@ -929,10 +1060,18 @@
             if (mode === 'chaos') activeCard.classList.add('border-amber-500/80');
         }
 
-        // メニュー画面を表示
+        // タイトル → モード選択
+        function showModeSelect() {
+            document.getElementById('title-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // メニュー画面を表示（リザルトからはモード選択へ）
         function showMenu() {
             stopBgm();
             document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('title-screen').classList.add('hidden');
             document.getElementById('game-hud').classList.add('opacity-0');
             document.getElementById('menu-screen').classList.remove('hidden');
         }
@@ -943,6 +1082,7 @@
          * ==========================================
          */
         function startGame() {
+            document.getElementById('title-screen').classList.add('hidden');
             document.getElementById('menu-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.add('hidden');
             
@@ -1506,9 +1646,16 @@
                 if (isPlaying) {
                     // 重力反転
                     player.flip();
+                } else if (!document.getElementById('title-screen').classList.contains('hidden')) {
+                    showModeSelect();
                 } else if (document.getElementById('menu-screen').classList.contains('hidden')) {
                     // ゲームオーバー画面なら、スペースキーで即座に再起動
                     startGame();
+                }
+            } else if (e.code === 'Enter') {
+                e.preventDefault();
+                if (!isPlaying && !document.getElementById('title-screen').classList.contains('hidden')) {
+                    showModeSelect();
                 }
             } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
                 e.preventDefault();

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PRO 9-BALL 3D - ブラウザで遊べる本格3Dナインボールゲーム。リアルな物理演算と美しいグラフィックを体験しよう。">
+    <title>PRO 9-BALL 3D | 無料ブラウザゲーム</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+    <!-- Header / Nav -->
+    <header class="header">
+        <div class="container nav-container">
+            <div class="logo">PRO <span>9-BALL</span> 3D</div>
+            <div class="nav-right">
+                <select id="lang-switch" class="lang-switch">
+                    <option value="ja">日本語</option>
+                    <option value="ko">한국어</option>
+                </select>
+                <a href="https://eitasato1121.github.io/JStest/" class="btn btn-primary" target="_blank" rel="noopener noreferrer" data-i18n="nav_play">今すぐプレイ</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-overlay"></div>
+        <div class="container hero-content">
+            <h1 class="hero-title" data-i18n="hero_title" style="word-break: keep-all; overflow-wrap: anywhere;">完璧な物理演算。究極の3Dナインボール。</h1>
+            <p class="hero-subtitle" data-i18n="hero_subtitle">ブラウザでプレイ可能な究極の3Dビリヤード（ナインボール）体験。リアルな挙動、洗練されたコントロール、そして圧倒的なグラフィック。</p>
+            <div class="hero-cta">
+                <a href="https://eitasato1121.github.io/JStest/" class="btn btn-large btn-glow" target="_blank" rel="noopener noreferrer">
+                    <span data-i18n="hero_cta">無料でプレイ</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title" data-i18n="features_title">ゲームの特徴</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper">
+                        <div class="feature-icon" style="color: #f1c40f; font-weight: bold; font-size: 2.5rem; font-family: 'Oswald', sans-serif;">9</div>
+                    </div>
+                    <h3 data-i18n="feat1_title">本格的なナインボール</h3>
+                    <p data-i18n="feat1_desc">公式ルールのナインボールを採用。ブレイクショットからのスリリングな展開を楽しめます。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper">
+                        <div class="feature-icon">✨</div>
+                    </div>
+                    <h3 data-i18n="feat2_title">3D グラフィック</h3>
+                    <p data-i18n="feat2_desc">高品質な3Dレンダリング。美しい光と影が織りなす極上のプレイ空間。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper">
+                        <div class="feature-icon">🎮</div>
+                    </div>
+                    <h3 data-i18n="feat3_title">高度なコントロール</h3>
+                    <p data-i18n="feat3_desc">パワーチャージ、スピンコントロールなど、高度なテクニックを直感的なUIで操作可能。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How to Play Section -->
+    <section class="controls">
+        <div class="container">
+            <h2 class="section-title" data-i18n="controls_title">遊び方</h2>
+            <div class="controls-wrapper">
+                <div class="control-item">
+                    <div class="control-key" data-i18n="ctrl1_key">左ドラッグ</div>
+                    <div class="control-desc" data-i18n="ctrl1_desc">視点移動・エイム</div>
+                </div>
+                <div class="control-item">
+                    <div class="control-key" data-i18n="ctrl2_key">スペース長押し</div>
+                    <div class="control-desc" data-i18n="ctrl2_desc">パワーチャージ</div>
+                </div>
+                <div class="control-item">
+                    <div class="control-key" data-i18n="ctrl3_key">スペース離す</div>
+                    <div class="control-desc" data-i18n="ctrl3_desc">ショット</div>
+                </div>
+                <div class="control-item">
+                    <div class="control-key" data-i18n="ctrl4_key">左下 UI</div>
+                    <div class="control-desc" data-i18n="ctrl4_desc">スピン設定</div>
+                </div>
+                <div class="control-item">
+                    <div class="control-key" data-i18n="ctrl5_key">C キー</div>
+                    <div class="control-desc" data-i18n="ctrl5_desc">カメラ視点変更</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action Banner -->
+    <section class="cta-banner">
+        <div class="container">
+            <h2 data-i18n="cta_title">テーブルに立つ準備はできましたか？</h2>
+            <p data-i18n="cta_desc">インストール不要、ブラウザですぐにプレイ可能です。</p>
+            <a href="https://eitasato1121.github.io/JStest/" class="btn btn-large" target="_blank" rel="noopener noreferrer" data-i18n="cta_btn">ゲームを開始する</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="logo footer-logo">PRO <span>9-BALL</span> 3D</div>
+                <p>&copy; 2026 PRO 9-BALL 3D. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

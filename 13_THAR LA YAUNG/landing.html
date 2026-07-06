@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Bomber - アクション満載のアーケード</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-green: #00ff00;
+            --neon-orange: #ffaa00;
+            --text-main: #c5c6c7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Background grid effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: 
+                linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            transform: perspective(500px) rotateX(60deg) scale(2.5) translateY(-100px);
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) scale(2.5) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) scale(2.5) translateY(40px); }
+        }
+
+        header {
+            margin-top: 5rem;
+            text-align: center;
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 
+                0 0 5px #fff,
+                0 0 10px #fff,
+                0 0 20px var(--neon-pink),
+                0 0 40px var(--neon-pink),
+                0 0 80px var(--neon-pink);
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
+            letter-spacing: 2px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 4rem auto;
+            padding: 2rem;
+            background: rgba(11, 12, 16, 0.8);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+            backdrop-filter: blur(10px);
+            animation: slideUp 1s ease-out 0.5s both;
+        }
+
+        section {
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--neon-green);
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px var(--neon-green);
+            border-bottom: 2px solid var(--neon-green);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-shadow: 0 0 1px rgba(255,255,255,0.5);
+        }
+
+        .flow-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .card {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--neon-orange);
+            padding: 1.5rem;
+            border-radius: 10px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px var(--neon-orange);
+        }
+
+        .card h3 {
+            color: var(--neon-orange);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            text-shadow: 0 0 8px var(--neon-orange);
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            color: #ddd;
+        }
+
+        .card-number {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 4rem;
+            font-weight: 900;
+            color: rgba(255, 170, 0, 0.1);
+            z-index: 0;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 4rem 0;
+            animation: pulse 2s infinite;
+        }
+
+        .play-btn {
+            display: inline-block;
+            padding: 1.2rem 3rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            background: transparent;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border: 2px solid var(--neon-blue);
+            border-radius: 5px;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 10px var(--neon-blue),
+                inset 0 0 10px var(--neon-blue);
+            overflow: hidden;
+        }
+
+        .play-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.4), transparent);
+            transition: all 0.5s ease;
+        }
+
+        .play-btn:hover {
+            background: var(--neon-blue);
+            color: var(--bg-color);
+            box-shadow: 
+                0 0 20px var(--neon-blue),
+                0 0 40px var(--neon-blue),
+                0 0 80px var(--neon-blue);
+        }
+
+        .play-btn:hover::before {
+            left: 100%;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            .container { margin: 2rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Neon Bomber</h1>
+        <div class="subtitle">究極のマルチプレイヤーアーケード体験</div>
+    </header>
+
+    <div class="container">
+        <section class="explanation">
+            <h2>ゲームについて</h2>
+            <p><strong>ネオンボンバー</strong>へようこそ。戦略と爆発的なアクションが交差する、テンポの速いグリッドベースのバトルアリーナです。レトロフューチャーなシンセウェイヴの世界を舞台に、対戦相手を罠にかけ、最後まで生き残るのがあなたの目標です。</p>
+            <p>障害物を爆破し、隠されたパワーアップアイテムを見つけ出し、PeerJSを介した激しいリアルタイムマルチプレイヤー戦闘で、最大3人の他のプレイヤーを出し抜きましょう。</p>
+        </section>
+
+        <section class="flow">
+            <h2>ゲームの流れ</h2>
+            <div class="flow-cards">
+                <div class="card">
+                    <div class="card-number">01</div>
+                    <div class="card-content">
+                        <h3>接続</h3>
+                        <p>新しいゲームルームをホストして独自のIDを共有するか、友達のルームIDを入力してロビーに参加します。</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-number">02</div>
+                    <div class="card-content">
+                        <h3>パワーアップ</h3>
+                        <p>木箱を破壊してパワーアップアイテムを出現させます。爆弾（Bomb）の所持数を増やし、爆風の範囲（Range）を広げ、スピード（Speed）を強化しましょう。</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-number">03</div>
+                    <div class="card-content">
+                        <h3>生き残る</h3>
+                        <p>戦略的に爆弾を配置して敵を罠にかけましょう。爆風を避け、最後まで生き残り、輝く勝利の王冠を手にしてください！</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="cta-section">
+        <a href="https://tharlayaung.github.io/HTMLGame/" class="play-btn">今すぐプレイ</a>
+    </div>
+
+</body>
+</html>

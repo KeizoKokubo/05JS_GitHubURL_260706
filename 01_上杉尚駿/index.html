@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DANMAKU DODGE - ゲーム紹介</title>
+    <style>
+        :root {
+            --bg: #05050c;
+            --card: rgba(10, 15, 30, 0.85);
+            --cyan: #0ff;
+            --magenta: #f0f;
+            --yellow: #ff0;
+            --text: #e8f4ff;
+            --muted: #9ab0c8;
+            --border: rgba(0, 255, 255, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(255, 0, 255, 0.12), transparent 45%),
+                radial-gradient(ellipse at 80% 80%, rgba(0, 255, 255, 0.1), transparent 45%),
+                var(--bg);
+            line-height: 1.7;
+        }
+
+        .container {
+            max-width: 880px;
+            margin: 0 auto;
+            padding: 48px 24px 64px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.85rem;
+            color: var(--cyan);
+            letter-spacing: 0.08em;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: clamp(2.4rem, 6vw, 3.6rem);
+            letter-spacing: 0.12em;
+            text-shadow: 0 0 20px var(--magenta), 0 0 40px rgba(255, 0, 255, 0.4);
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--muted);
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.06);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            color: var(--cyan);
+            margin-bottom: 14px;
+            letter-spacing: 0.06em;
+        }
+
+        .card p,
+        .card li {
+            color: var(--text);
+        }
+
+        .card ul {
+            padding-left: 1.2em;
+        }
+
+        .card li + li {
+            margin-top: 10px;
+        }
+
+        .highlight {
+            color: var(--yellow);
+            font-weight: 600;
+        }
+
+        .play-section {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .play-btn {
+            display: inline-block;
+            padding: 16px 36px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 0.08em;
+            color: #000;
+            background: linear-gradient(135deg, var(--cyan), #7ff);
+            border: none;
+            border-radius: 999px;
+            text-decoration: none;
+            box-shadow: 0 0 24px rgba(0, 255, 255, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .play-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 36px rgba(0, 255, 255, 0.7);
+        }
+
+        .url-box {
+            margin-top: 20px;
+            padding: 14px 18px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            word-break: break-all;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.95rem;
+        }
+
+        .url-box a {
+            color: var(--cyan);
+            text-decoration: none;
+        }
+
+        .url-box a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 48px;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="hero">
+            <span class="badge">BROWSER GAME</span>
+            <h1>DANMAKU DODGE</h1>
+            <p class="subtitle">弾幕ドッジ ── ひたすら避けて、生き残れ。</p>
+        </header>
+
+        <section class="card">
+            <h2>ゲームタイトル</h2>
+            <p><strong>DANMAKU DODGE</strong>（ダンマク・ドッジ）</p>
+            <p style="margin-top: 10px;">
+                ブラウザだけで遊べる、シンプルな弾幕避けゲームです。
+                マウスで自機を動かし、画面中央上部から放たれる弾幕を避けながら、
+                できるだけ長く生存することを目指します。
+            </p>
+        </section>
+
+        <section class="card">
+            <h2>コンセプト</h2>
+            <p>
+                東方Projectなどでおなじみの<span class="highlight">「弾幕（だんまく）」</span>を、
+                誰でも手軽に体験できるWebゲームとして再現しました。
+            </p>
+            <p style="margin-top: 12px;">
+                攻撃は一切ありません。プレイヤーの役割は<span class="highlight">「避ける」</span>ことだけ。
+                マウスで水色の自機（コア）を操作し、画面を埋め尽くすカラフルな弾をかわし続けます。
+                スコアは<span class="highlight">生存時間（秒）</span>で表示され、1秒でも長く生き残ることが勝利への近道です。
+            </p>
+            <p style="margin-top: 12px;">
+                自機の当たり判定は、見た目よりもはるかに小さい<span class="highlight">白い中心点</span>。
+                ギリギリをかすめて避ける快感が、このゲームの醍醐味です。
+            </p>
+        </section>
+
+        <section class="card">
+            <h2>工夫ポイント</h2>
+            <ul>
+                <li>
+                    <strong>3種類の弾幕パターン</strong> ── 螺旋弾（ピンク・シアン）、全方位弾（イエロー）、
+                    自機狙い弾（レッド）が組み合わさり、単調にならない避け方を要求します。
+                </li>
+                <li>
+                    <strong>時間経過で難易度が上昇</strong> ── 約60秒かけて弾の数・速度・発射間隔が段階的に強化され、
+                    長く生き残るほど手応えが増します。
+                </li>
+                <li>
+                    <strong>極小の当たり判定</strong> ── 自機の見た目は光るオーラですが、実際の判定は半径わずか2.5pxの中心点。
+                    本格的な弾幕シューティングの「擦り弾」感覚を再現しています。
+                </li>
+                <li>
+                    <strong>光るビジュアル表現</strong> ── 加算合成（lighter）と残像エフェクトにより、
+                    弾が重なり合うほど明るく輝くネオン調の画面を実現しています。
+                </li>
+                <li>
+                    <strong>直感的なマウス操作</strong> ── 自機はマウスカーソルに即座に追従。
+                    プレイ中はカーソルを非表示にし、没入感を高めています。
+                </li>
+                <li>
+                    <strong>インストール不要・1ファイル完結</strong> ── HTML・CSS・JavaScriptのみで構成。
+                    追加のライブラリやダウンロードなしで、URLを開くだけですぐにプレイできます。
+                </li>
+            </ul>
+        </section>
+
+        <section class="play-section">
+            <a class="play-btn" href="https://naotoshiuesugi.github.io/sinnki/" target="_blank" rel="noopener noreferrer">
+                ゲームをプレイする
+            </a>
+            <div class="url-box">
+                GitHub Pages URL：<br>
+                <a href="https://naotoshiuesugi.github.io/sinnki/" target="_blank" rel="noopener noreferrer">
+                    https://naotoshiuesugi.github.io/sinnki/
+                </a>
+            </div>
+        </section>
+
+        <footer>
+            DANMAKU DODGE &copy; 2026
+        </footer>
+    </div>
+</body>
+</html>

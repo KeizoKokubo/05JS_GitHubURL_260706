@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学生作品 目次</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      color: #1f2937;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(236, 253, 245, 0.9)),
+        #f8fafc;
+    }
+
+    main {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+
+    header {
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      margin: 0;
+      color: #52606d;
+      line-height: 1.7;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .student-link,
+    .student-missing {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 86px;
+      padding: 16px 18px;
+      border-radius: 8px;
+      border: 1px solid #d8e2dc;
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+
+    .student-link {
+      color: #123524;
+      background: #ffffff;
+    }
+
+    .student-link:hover,
+    .student-link:focus-visible {
+      transform: translateY(-2px);
+      border-color: #34a853;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+      outline: none;
+    }
+
+    .student-missing {
+      color: #7a4f01;
+      background: #fff8e1;
+      border-style: dashed;
+    }
+
+    .name {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .path,
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #667085;
+      overflow-wrap: anywhere;
+    }
+
+    .status {
+      color: #9a6700;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>学生作品 目次</h1>
+      <p class="summary">学生名のボタンをクリックすると、各フォルダ内の主要なHTMLファイルを開きます。</p>
+    </header>
+
+    <section class="grid" aria-label="学生作品一覧">
+      <a class="student-link" href="01_上杉尚駿/index.html">
+        <span class="name">01_上杉尚駿</span>
+        <span class="path">01_上杉尚駿/index.html</span>
+      </a>
+
+      <a class="student-link" href="02_太田誠路/index.html">
+        <span class="name">02_太田誠路</span>
+        <span class="path">02_太田誠路/index.html</span>
+      </a>
+
+      <a class="student-link" href="03_大谷あやめ/GameIntroduction/HTMLゲーム紹介.html">
+        <span class="name">03_大谷あやめ</span>
+        <span class="path">03_大谷あやめ/GameIntroduction/HTMLゲーム紹介.html</span>
+      </a>
+
+      <a class="student-link" href="04_風戸晄/ゲーム紹介サイト/index.html">
+        <span class="name">04_風戸晄</span>
+        <span class="path">04_風戸晄/ゲーム紹介サイト/index.html</span>
+      </a>
+
+      <a class="student-link" href="07_小池遼/index.html">
+        <span class="name">07_小池遼</span>
+        <span class="path">07_小池遼/index.html</span>
+      </a>
+
+      <a class="student-link" href="08_作田颯斗/GameIntro.html">
+        <span class="name">08_作田颯斗</span>
+        <span class="path">08_作田颯斗/GameIntro.html</span>
+      </a>
+
+      <a class="student-link" href="09_佐藤瑛太/index.html">
+        <span class="name">09_佐藤瑛太</span>
+        <span class="path">09_佐藤瑛太/index.html</span>
+      </a>
+
+      <a class="student-link" href="10_蔣心悦/10蔣心悦.html">
+        <span class="name">10_蔣心悦</span>
+        <span class="path">10_蔣心悦/10蔣心悦.html</span>
+      </a>
+
+      <a class="student-link" href="11_菅原陽琉/index.html">
+        <span class="name">11_菅原陽琉</span>
+        <span class="path">11_菅原陽琉/index.html</span>
+      </a>
+
+      <a class="student-link" href="12_須藤連/index.html">
+        <span class="name">12_須藤連</span>
+        <span class="path">12_須藤連/index.html</span>
+      </a>
+
+      <a class="student-link" href="13_THAR LA YAUNG/landing.html">
+        <span class="name">13_THAR LA YAUNG</span>
+        <span class="path">13_THAR LA YAUNG/landing.html</span>
+      </a>
+
+      <a class="student-link" href="14_髙橋花/index.html">
+        <span class="name">14_髙橋花</span>
+        <span class="path">14_髙橋花/index.html</span>
+      </a>
+
+      <a class="student-link" href="15_竹中佑真/index.html">
+        <span class="name">15_竹中佑真</span>
+        <span class="path">15_竹中佑真/index.html</span>
+      </a>
+
+      <a class="student-link" href="16_田中栄吉/ai/index.html">
+        <span class="name">16_田中栄吉</span>
+        <span class="path">16_田中栄吉/ai/index.html</span>
+      </a>
+
+      <a class="student-link" href="17_田中壮/link.html">
+        <span class="name">17_田中壮</span>
+        <span class="path">17_田中壮/link.html</span>
+      </a>
+
+      <a class="student-link" href="18_田中陽太/indx.html">
+        <span class="name">18_田中陽太</span>
+        <span class="path">18_田中陽太/indx.html</span>
+      </a>
+
+      <div class="student-missing" aria-disabled="true">
+        <span class="name">19_仲元寺瑛大</span>
+        <span class="status">HTMLファイルなし</span>
+      </div>
+
+      <a class="student-link" href="20_三浦翔馬/index.html">
+        <span class="name">20_三浦翔馬</span>
+        <span class="path">20_三浦翔馬/index.html</span>
+      </a>
+
+      <a class="student-link" href="21_村田葵★/index.html">
+        <span class="name">21_村田葵★</span>
+        <span class="path">21_村田葵★/index.html</span>
+      </a>
+
+      <a class="student-link" href="22_森田天晴/index.html">
+        <span class="name">22_森田天晴</span>
+        <span class="path">22_森田天晴/index.html</span>
+      </a>
+
+      <a class="student-link" href="23_柳澤結太/GitURLPages/index.html">
+        <span class="name">23_柳澤結太</span>
+        <span class="path">23_柳澤結太/GitURLPages/index.html</span>
+      </a>
+
+      <a class="student-link" href="24_山田基心/提出用/index.html">
+        <span class="name">24_山田基心</span>
+        <span class="path">24_山田基心/提出用/index.html</span>
+      </a>
+
+      <a class="student-link" href="25_渡邊亮一/index.html">
+        <span class="name">25_渡邊亮一</span>
+        <span class="path">25_渡邊亮一/index.html</span>
+      </a>
+    </section>
+  </main>
+</body>
+</html>

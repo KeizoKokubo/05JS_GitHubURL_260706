@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HYPER RUNNER - ゲーム紹介</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #05050d;
+            --card-bg: rgba(16, 15, 38, 0.6);
+            --cyan: #00f2fe;
+            --pink: #ff0844;
+            --gold: #f6d365;
+            --text: #ffffff;
+            --text-sub: #8fa0dd;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle, #100f26 0%, var(--bg-color) 100%);
+            color: var(--text);
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            margin: 0;
+            background: linear-gradient(45deg, var(--cyan), #4facfe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+            letter-spacing: 4px;
+        }
+
+        .subtitle {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--text-sub);
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            margin-top: 10px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--cyan);
+            border-bottom: 2px solid rgba(0, 242, 254, 0.2);
+            padding-bottom: 8px;
+            display: inline-block;
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 15px;
+        }
+
+        li strong {
+            color: var(--gold);
+        }
+
+        .cta-section {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .btn {
+            display: inline-block;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 15px 50px;
+            color: var(--cyan);
+            text-decoration: none;
+            background: transparent;
+            border: 2px solid var(--cyan);
+            border-radius: 40px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
+            text-shadow: 0 0 5px rgba(0, 242, 254, 0.5);
+        }
+
+        .btn:hover {
+            background: var(--cyan);
+            color: var(--bg-color);
+            box-shadow: 0 0 35px rgba(0, 242, 254, 0.8);
+            transform: scale(1.05);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 80px;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>HYPER RUNNER</h1>
+            <div class="subtitle">超高速スクロールランナー - 拡張版</div>
+        </header>
+
+        <section class="card">
+            <h2>コンセプト</h2>
+            <p><strong>「スピード感と爽快感を極めた、近未来的ネオンサイバーパンク・ランゲーム」</strong></p>
+            <p>黒を基調とした画面に鮮やかなネオンカラーが映えるサイバーパンクな世界観の中、加速し続けるスピードに耐えながら障害物を避け、エナジーコアを集めてハイスコアを目指す、スリリングかつ爽快なアクションゲームです。</p>
+        </section>
+
+        <section class="card">
+            <h2>ゲームの工夫ポイント</h2>
+            <ul>
+                <li><strong>爽快感を高める「FEVERモード」：</strong> エナジーコアを集めてゲージを100%にすると無敵のFEVER状態が発動。圧倒的な加速とともに、障害物を体当たりで次々と破壊する爽快感が得られます。</li>
+                <li><strong>速度に連動する動的な色彩変化：</strong> スピードの上昇に合わせて、プレイヤーの色相がシアンから赤へとリアルタイムに変化。視覚的な緊張感を高めます。</li>
+                <li><strong>2段ジャンプと空中障害物の戦略性：</strong> 空中にも配置される障害物を避けるため、2段ジャンプの使い所が鍵を握ります。残像エフェクトやインジケーターで自機の状態も把握しやすく調整されています。</li>
+                <li><strong>手触りとゲームバランスの調整：</strong> 障害物の生成パターンに波を持たせて単調さを防ぎつつ、当たり判定にわずかなマージンを設けることで、理不尽さを感じない快適なプレイフィールを実現しています。</li>
+                <li><strong>臨場感を演出するエフェクト：</strong> 飛び散るパーティクル、スコアの浮遊テキスト、衝突時の画面シェイクなど、2D Canvasでありながら心地よいフィードバックを多数盛り込んでいます。</li>
+            </ul>
+        </section>
+
+        <div class="cta-section">
+            <a href="https://rensuto0102.github.io/HAYAI/" class="btn" target="_blank">PLAY NOW</a>
+        </div>
+
+        <footer>
+            <p>&copy; 2026 HYPER RUNNER All Rights Reserved.</p>
+        </footer>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D バランスボール・アドベンチャー</title>
+    <!-- Tailwind CSS for UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Cannon.js for 3D physics simulation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #0f172a;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+        /* ジョイスティックのスタイル */
+        #joystick-container {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            backdrop-filter: blur(5px);
+            z-index: 30;
+            display: none;
+            touch-action: none;
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #38bdf8 0%, #0284c7 100%);
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            cursor: pointer;
+            touch-action: none;
+        }
+        /* カスタムスクロールバー */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.4);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3Dレンダリング用コンテナ -->
+    <div id="canvas-container"></div>
+
+    <!-- UI レイヤー -->
+    <div class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 md:p-6">
+        
+        <!-- ヘッダー（スコア、タイマー、ステージ情報） -->
+        <div class="flex justify-between items-start w-full pointer-events-auto">
+            <!-- 左上: ステージ & ステータス -->
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700 p-4 rounded-2xl text-white shadow-2xl flex flex-col gap-1 min-w-[150px]">
+                <div class="text-xs text-sky-400 font-bold uppercase tracking-wider" id="stage-title">STAGE 1</div>
+                <div class="text-xl font-extrabold" id="stage-name">はじまり of 丘</div>
+                <div class="flex items-center gap-2 mt-2 text-sm text-slate-300">
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-gem text-amber-400"></i> <span id="gems-count">0/3</span></span>
+                </div>
+            </div>
+
+            <!-- 中央: タイマー -->
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700 px-6 py-3 rounded-2xl text-white shadow-2xl flex flex-col items-center">
+                <div class="text-xs text-slate-400 font-semibold uppercase">TIME</div>
+                <div class="text-2xl font-mono font-bold text-emerald-400" id="timer">00.00</div>
+            </div>
+
+            <!-- 右上: メニュー & コントロール -->
+            <div class="flex flex-col gap-2 items-end">
+                <button id="btn-pause" class="bg-slate-900/80 hover:bg-slate-800 border border-slate-700 p-3 rounded-xl text-white shadow-lg pointer-events-auto transition active:scale-95">
+                    <i class="fa-solid fa-pause text-lg"></i>
+                </button>
+                <button id="btn-camera" class="bg-slate-900/80 hover:bg-slate-800 border border-slate-700 p-3 rounded-xl text-white shadow-lg pointer-events-auto transition active:scale-95" title="視点切り替え">
+                    <i class="fa-solid fa-camera text-lg text-sky-400"></i>
+                </button>
+                <button id="btn-sound" class="bg-slate-900/80 hover:bg-slate-800 border border-slate-700 p-3 rounded-xl text-white shadow-lg pointer-events-auto transition active:scale-95" title="音量ミュート">
+                    <i class="fa-solid fa-volume-high text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 下部: 操作ガイド & キャリブレーション -->
+        <div class="w-full flex justify-between items-end pointer-events-auto">
+            <!-- 左下: 操作説明 (PC) -->
+            <div class="hidden md:block bg-slate-900/80 backdrop-blur-md border border-slate-700 p-4 rounded-2xl text-slate-300 text-xs shadow-2xl max-w-xs">
+                <p class="font-bold text-white mb-2"><i class="fa-solid fa-gamepad mr-1"></i> 操作方法 (PC)</p>
+                <ul class="space-y-1">
+                    <li id="guide-standard">
+                        <span class="bg-slate-700 px-1.5 py-0.5 rounded font-mono">↑↓←→</span> / <span class="bg-slate-700 px-1.5 py-0.5 rounded font-mono">WASD</span>: 転がす
+                    </li>
+                    <li id="guide-pinball" class="hidden text-amber-400 font-bold">
+                        <span class="bg-slate-700 px-1.5 py-0.5 rounded font-mono">← / A</span>: 左フリッパー<br>
+                        <span class="bg-slate-700 px-1.5 py-0.5 rounded font-mono">→ / D</span>: 右フリッパー<br>
+                        <span class="bg-slate-700 px-1.5 py-0.5 rounded font-mono">SPACE</span>: 打ち出し（プランジャー）
+                    </li>
+                    <li><span class="bg-slate-700 px-1.5 py-0.5 rounded font-mono">R</span>: 最初からやり直す</li>
+                    <li id="guide-jump"><span class="bg-slate-700 px-1.5 py-0.5 rounded font-mono">SPACE</span>: ジャンプ</li>
+                </ul>
+            </div>
+
+            <!-- モバイル用ジャイロ調整ボタン（ジャイロ有効時のみ表示） -->
+            <button id="btn-calibrate" class="hidden bg-slate-900/80 hover:bg-slate-800 border border-slate-700 px-4 py-2.5 rounded-xl text-white text-xs shadow-lg font-bold transition active:scale-95">
+                <i class="fa-solid fa-arrows-spin mr-1"></i> 傾きリセット
+            </button>
+
+            <!-- 右下: リスタートボタン -->
+            <button id="btn-restart" class="bg-amber-600 hover:bg-amber-500 border border-amber-500 px-5 py-3 rounded-xl text-white font-bold shadow-lg flex items-center gap-2 transition active:scale-95">
+                <i class="fa-solid fa-arrow-rotate-right"></i>
+                <span>リスタート</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ジョイスティック (モバイル/タッチ操作用) -->
+    <div id="joystick-container">
+        <div id="joystick-knob"></div>
+    </div>
+
+    <!-- メニュー画面 / モーダル（共通背景） -->
+    <div id="modal-overlay" class="absolute inset-0 bg-slate-950/70 backdrop-blur-md z-40 flex items-center justify-center p-4 transition-all duration-300">
+        
+        <!-- スタートメニュー -->
+        <div id="menu-start" class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-3xl max-w-md w-full text-center text-white shadow-2xl flex flex-col items-center max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="w-16 h-16 bg-sky-500/10 border border-sky-500/30 rounded-full flex items-center justify-center mb-3 animate-bounce">
+                <i class="fa-solid fa-circle-dot text-3xl text-sky-400"></i>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-1 bg-gradient-to-r from-sky-400 via-emerald-400 to-indigo-400 bg-clip-text text-transparent">
+                SPHERE RUNNER
+            </h1>
+            <p class="text-slate-400 text-xs mb-4">物理シミュレーションで動く3Dボールを操作し、ステージのギミックを攻略してゴールを目指せ！</p>
+            
+            <!-- ステージ選択 -->
+            <div class="w-full text-left mb-4">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">ステージを選択</label>
+                <div class="grid grid-cols-1 gap-1.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar" id="stage-selector-container">
+                    <!-- JavaScriptでステージ一覧を動的追加 -->
+                </div>
+            </div>
+
+            <!-- 操作モード選択 -->
+            <div class="w-full text-left mb-5">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">操作デバイス</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="control-keyboard" class="bg-sky-600 border border-sky-400 text-xs font-bold p-2.5 rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95">
+                        <i class="fa-solid fa-keyboard text-base"></i>
+                        <span>キーボード / タッチ</span>
+                    </button>
+                    <button id="control-gyro" class="bg-slate-800 border border-slate-700 text-slate-400 text-xs font-bold p-2.5 rounded-xl flex items-center justify-center gap-1.5 transition hover:border-slate-600 active:scale-95">
+                        <i class="fa-solid fa-mobile-screen-button text-base"></i>
+                        <span>ジャイロ (スマホ)</span>
+                    </button>
+                </div>
+                <p id="gyro-notice" class="text-[10px] text-amber-400/80 mt-1 hidden"><i class="fa-solid fa-circle-info"></i> ジャイロ使用にはモバイル端末と権限が必要です</p>
+            </div>
+
+            <!-- スタートボタン -->
+            <button id="btn-start-game" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold py-3 md:py-4 px-6 rounded-2xl shadow-xl shadow-emerald-900/20 transition-all duration-150 active:scale-95 text-base md:text-lg shrink-0">
+                ゲーム開始 <i class="fa-solid fa-play ml-1"></i>
+            </button>
+        </div>
+
+        <!-- 一時停止メニュー -->
+        <div id="menu-pause" class="hidden bg-slate-900 border border-slate-700 p-8 rounded-3xl max-w-sm w-full text-center text-white shadow-2xl flex flex-col items-center">
+            <h2 class="text-2xl font-black mb-4"><i class="fa-solid fa-pause text-sky-400 mr-2"></i>一時停止中</h2>
+            <div class="flex flex-col gap-3 w-full">
+                <button id="btn-resume" class="bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded-xl transition active:scale-95">
+                    ゲームを再開
+                </button>
+                <button id="btn-restart-pause" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl transition active:scale-95">
+                    このステージをリトライ
+                </button>
+                <button id="btn-back-to-menu" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 px-6 rounded-xl transition active:scale-95">
+                    ステージ選択に戻る
+                </button>
+            </div>
+        </div>
+
+        <!-- ゲームオーバー画面 -->
+        <div id="menu-gameover" class="hidden bg-slate-900 border border-red-500/30 p-8 rounded-3xl max-w-sm w-full text-center text-white shadow-2xl flex flex-col items-center">
+            <div class="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mb-4">
+                <i class="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
+            </div>
+            <h2 class="text-3xl font-black text-red-500 mb-2">アウト！</h2>
+            <p class="text-slate-400 text-sm mb-6">コースから転落、またはボールを失いました！もう一度挑戦しましょう。</p>
+            <div class="flex flex-col gap-3 w-full">
+                <button id="btn-retry-gameover" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition active:scale-95">
+                    もう一度挑戦する <i class="fa-solid fa-arrow-rotate-right ml-1"></i>
+                </button>
+                <button id="btn-menu-gameover" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 px-6 rounded-xl transition active:scale-95">
+                    ステージ選択へ戻る
+                </button>
+            </div>
+        </div>
+
+        <!-- クリア画面 -->
+        <div id="menu-clear" class="hidden bg-slate-900 border border-emerald-500/30 p-8 rounded-3xl max-w-sm w-full text-center text-white shadow-2xl flex flex-col items-center">
+            <div class="w-20 h-20 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                <i class="fa-solid fa-trophy text-4xl text-amber-400"></i>
+            </div>
+            <h2 class="text-3xl font-black text-emerald-400 mb-2">STAGE CLEAR!</h2>
+            <p class="text-slate-400 text-sm mb-4" id="clear-message">素晴らしいバランス感覚です！</p>
+            
+            <!-- スコア統計 -->
+            <div class="bg-slate-950/50 rounded-2xl p-4 w-full mb-6 border border-slate-800 flex flex-col gap-2 font-semibold">
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400">クリアタイム:</span>
+                    <span class="text-emerald-400 font-mono text-base" id="clear-time">00.00 秒</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400">獲得ジェム:</span>
+                    <span class="text-amber-400 text-base" id="clear-gems"><i class="fa-solid fa-gem mr-1"></i>0/3</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 w-full">
+                <button id="btn-next-stage" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-3.5 px-6 rounded-xl shadow-lg transition active:scale-95">
+                    次のステージへ <i class="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+                <button id="btn-retry-clear" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 px-6 rounded-xl transition active:scale-95">
+                    もう一度プレイ
+                </button>
+                <button id="btn-menu-clear" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 px-6 rounded-xl transition active:scale-95">
+                    ステージ選択へ戻る
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Web Audio API を用いたサウンド合成スクリプト -->
+    <script>
+        const SoundFX = {
+            ctx: null,
+            muted: false,
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+
+            playBallHit(vol = 1) {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+
+                gain.gain.setValueAtTime(0.3 * vol, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            },
+
+            playGemCollect() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(523.25, now); 
+                osc1.frequency.setValueAtTime(659.25, now + 0.08); 
+
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(1046.50, now); 
+                osc2.frequency.setValueAtTime(1318.51, now + 0.08); 
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc1.start(now);
+                osc1.stop(now + 0.25);
+                osc2.start(now);
+                osc2.stop(now + 0.25);
+            },
+
+            playWin() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; 
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.1);
+
+                    gain.gain.setValueAtTime(0.1, now + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+
+                    osc.start(now + i * 0.1);
+                    osc.stop(now + i * 0.1 + 0.3);
+                });
+            },
+
+            playGameOver() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [196.00, 174.61, 146.83, 130.81]; 
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.15);
+
+                    gain.gain.setValueAtTime(0.1, now + i * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.4);
+
+                    osc.start(now + i * 0.15);
+                    osc.stop(now + i * 0.15 + 0.4);
+                });
+            },
+
+            playJump() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(500, now + 0.15);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            },
+
+            playBumper() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+                osc.start(now);
+                osc.stop(now + 0.12);
+            }
+        };
+    </script>
+
+    <!-- メインゲームロジック -->
+    <script>
+        const STAGES = [
+            {
+                id: 0,
+                name: "はじまりの丘",
+                desc: "まずは基本操作を覚えよう！ジェムを集めてゴールを目指せ。",
+                ballStart: { x: 0, y: 1.5, z: 12 },
+                gems: [
+                    { x: 0, y: 0.8, z: 6 },
+                    { x: -3, y: 0.8, z: 0 },
+                    { x: 3, y: 0.8, z: -4 }
+                ],
+                goal: { x: 0, y: 0.5, z: -11 },
+                hazards: [],
+                platforms: [
+                    { x: 0, y: 0, z: 10, w: 6, h: 0.5, d: 8, color: 0x22c55e }, 
+                    { x: 0, y: 0, z: 4, w: 3, h: 0.5, d: 6, color: 0x10b981 },  
+                    { x: -3, y: 0, z: 0, w: 4, h: 0.5, d: 4, color: 0x10b981 }, 
+                    { x: 3, y: 0, z: -4, w: 4, h: 0.5, d: 4, color: 0x10b981 }, 
+                    { x: 0, y: 0, z: -2, w: 2, h: 0.5, d: 6, color: 0x059669 }, 
+                    { x: 0, y: 0, z: -9, w: 6, h: 0.5, d: 8, color: 0x047857 }  
+                ]
+            },
+            {
+                id: 1,
+                name: "動きだす障害物",
+                desc: "左右に動く「キッカー」を避けて、ジャンプ台を活用しよう！",
+                ballStart: { x: 0, y: 1.5, z: 14 },
+                gems: [
+                    { x: 0, y: 2.2, z: 6 }, 
+                    { x: 0, y: 3.5, z: 0 }, 
+                    { x: 0, y: 1.2, z: -6 } 
+                ],
+                goal: { x: 0, y: 0.5, z: -11 },
+                hazards: [
+                    { id: "moving_wall_1", x: 0, y: 0.8, z: 4, w: 4, h: 0.8, d: 1, speed: 2, range: 4.5, type: "osc_x" },
+                    { id: "moving_wall_2", x: 0, y: 0.8, z: -2, w: 4, h: 0.8, d: 1, speed: -2.5, range: 4.5, type: "osc_x" }
+                ],
+                platforms: [
+                    { x: 0, y: 0, z: 13, w: 6, h: 0.5, d: 6, color: 0x3b82f6 }, 
+                    { x: 0, y: 0, z: 4, w: 10, h: 0.5, d: 12, color: 0x1d4ed8 }, 
+                    { x: 0, y: 0, z: -4, w: 4, h: 0.5, d: 4, color: 0x1e40af },  
+                    { x: 0, y: 0, z: -10, w: 6, h: 0.5, d: 8, color: 0x1e3a8a }  
+                ],
+                specialObjects: [
+                    { type: "booster", x: 0, y: 0.3, z: 1, w: 2, h: 0.1, d: 2, color: 0xeab308 } 
+                ]
+            },
+            {
+                id: 2,
+                name: "天空の迷路",
+                desc: "足場が細く傾いています。慎重に転がし、動く床を渡りましょう！",
+                ballStart: { x: -8, y: 1.5, z: 8 },
+                gems: [
+                    { x: -8, y: 0.8, z: 0 },
+                    { x: 4, y: 0.8, z: -4 },
+                    { x: 8, y: 1.3, z: 8 }
+                ],
+                goal: { x: 8, y: 0.5, z: 8 },
+                hazards: [
+                    { id: "spinner_1", x: 0, y: 0.6, z: 0, w: 6, h: 0.3, d: 0.6, speed: 1.5, type: "rotate_y" }
+                ],
+                platforms: [
+                    { x: -8, y: 0, z: 8, w: 4, h: 0.5, d: 4, color: 0x8b5cf6 },  
+                    { x: -8, y: 0, z: 0, w: 2, h: 0.5, d: 12, color: 0x7c3aed }, 
+                    { x: -4, y: 0, z: -4, w: 10, h: 0.5, d: 2, color: 0x6d28d9 }, 
+                    { x: 3, y: 0, z: -4, w: 4, h: 0.5, d: 4, color: 0x5b21b6 },  
+                    { x: 8, y: 0, z: 0, w: 2, h: 0.5, d: 10, color: 0x4c1d95 },  
+                    { x: 8, y: 0.5, z: 8, w: 4, h: 0.5, d: 4, color: 0x2e1065 }  
+                ],
+                movingPlatforms: [
+                    { id: "lift_1", x: 3, y: 0, z: 2, w: 3, h: 0.5, d: 3, speed: 1.5, range: 4, axis: "z", startPos: 2 }
+                ]
+            },
+            {
+                id: 3,
+                name: "インフェルノ・螺旋",
+                desc: "【高難易度】外壁のない螺旋スロープ。高速の回転バーと障害物を超えろ！",
+                ballStart: { x: 0, y: 1.5, z: 12 },
+                gems: [
+                    { x: -4, y: 1.8, z: 4 },
+                    { x: 5, y: 2.8, z: -2 },
+                    { x: 0, y: 3.8, z: -8 }
+                ],
+                goal: { x: 0, y: 3.5, z: -14 },
+                hazards: [
+                    { id: "spiral_spinner", x: -4, y: 1.6, z: -2, w: 2.5, h: 0.3, d: 0.4, speed: 3.0, type: "rotate_y" },
+                    { id: "spiral_pusher", x: 1, y: 2.2, z: -2, w: 1.5, h: 0.8, d: 1.5, speed: 4.5, range: 2.5, type: "osc_x" }
+                ],
+                platforms: [
+                    { x: 0, y: 0, z: 12, w: 4, h: 0.5, d: 4, color: 0xe11d48 }, 
+                    { x: -4, y: 0.5, z: 4, w: 2, h: 0.5, d: 10, color: 0xbe123c }, 
+                    { x: -4, y: 1.0, z: -2, w: 3, h: 0.5, d: 3, color: 0x9f1239 }, 
+                    { x: 1, y: 1.5, z: -2, w: 8, h: 0.5, d: 2, color: 0x881337 }, 
+                    { x: 5, y: 2.0, z: -2, w: 3, h: 0.5, d: 3, color: 0x9f1239 }, 
+                    { x: 5, y: 2.5, z: -7, w: 2, h: 0.5, d: 8, color: 0xbe123c }, 
+                    { x: 0, y: 3.0, z: -11, w: 4, h: 0.5, d: 4, color: 0xe11d48 }, 
+                    { x: 0, y: 3.0, z: -14, w: 4, h: 0.5, d: 4, color: 0x4c0519 } 
+                ]
+            },
+            {
+                id: 4,
+                name: "マインド・ギャップ",
+                desc: "【高難易度】タイミングを見極めて動くリフトを渡り、ラストは大ジャンプ！",
+                ballStart: { x: 0, y: 1.5, z: 14 },
+                gems: [
+                    { x: 0, y: 0.8, z: 4 },
+                    { x: 0, y: 5.5, z: -6 }, 
+                    { x: -6, y: 0.8, z: -12 } 
+                ],
+                goal: { x: 0, y: 0.5, z: -16 },
+                hazards: [],
+                platforms: [
+                    { x: 0, y: 0, z: 13, w: 5, h: 0.5, d: 4, color: 0x0369a1 }, 
+                    { x: 0, y: 0, z: 0, w: 4, h: 0.5, d: 4, color: 0x0284c7 }, 
+                    { x: -6, y: 0, z: -12, w: 2, h: 0.5, d: 2, color: 0xf59e0b }, 
+                    { x: -3.5, y: 0, z: -12, w: 3, h: 0.5, d: 0.4, color: 0x334155 }, 
+                    { x: 0, y: 0, z: -15, w: 5, h: 0.5, d: 6, color: 0x075985 } 
+                ],
+                movingPlatforms: [
+                    { id: "gap_lift_1", x: 0, y: 0, z: 7, w: 2.5, h: 0.5, d: 2.5, speed: 2.0, range: 3.5, axis: "x", startPos: 0 },
+                    { id: "gap_lift_2", x: 0, y: 0, z: -7, w: 2.5, h: 0.5, d: 2.5, speed: 2.5, range: 4.0, axis: "x", startPos: Math.PI }
+                ],
+                specialObjects: [
+                    { type: "booster", x: 0, y: 0.3, z: 0, w: 1.5, h: 0.1, d: 1.5, color: 0xeab308 } 
+                ]
+            },
+            {
+                id: 5,
+                name: "グラビティ・パニック",
+                desc: "【高難易度】上下するエレベーターと、傾斜がついたスリリングな左右の通路。",
+                ballStart: { x: 0, y: 1.5, z: 15 },
+                gems: [
+                    { x: -4, y: 1.3, z: 5 },
+                    { x: 4, y: 1.3, z: -5 },
+                    { x: 0, y: 2.8, z: 0 } 
+                ],
+                goal: { x: 0, y: 0.5, z: -15 },
+                hazards: [
+                    { id: "panic_spinner_1", x: -4, y: 1.1, z: 5, w: 2.5, h: 0.3, d: 0.4, speed: -2.0, type: "rotate_y" },
+                    { id: "panic_spinner_2", x: 4, y: 1.1, z: -5, w: 2.5, h: 0.3, d: 0.4, speed: 2.0, type: "rotate_y" }
+                ],
+                platforms: [
+                    { x: 0, y: 0, z: 14, w: 4, h: 0.5, d: 4, color: 0x111827 }, 
+                    { x: -4, y: 0.5, z: 5, w: 1.5, h: 0.5, d: 10, color: 0x1f2937 }, 
+                    { x: 0, y: 2.0, z: 0, w: 3, h: 0.5, d: 3, color: 0x374151 }, 
+                    { x: 4, y: 0.5, z: -5, w: 1.5, h: 0.5, d: 10, color: 0x1f2937 }, 
+                    { x: 0, y: 0, z: -13, w: 4, h: 0.5, d: 6, color: 0x111827 } 
+                ],
+                movingPlatforms: [
+                    { id: "panic_lift_up", x: 0, y: 0, z: 5, w: 2.5, h: 0.5, d: 2.5, speed: 1.5, range: 2.5, axis: "y", startPos: 0 },
+                    { id: "panic_lift_down", x: 0, y: 2.0, z: -5, w: 2.5, h: 0.5, d: 2.5, speed: 1.5, range: 2.5, axis: "y", startPos: Math.PI }
+                ]
+            },
+            {
+                id: 6,
+                name: "超加速サーキット",
+                desc: "【超加速】連続するジェットブースターでマッハ移動！大峡谷を大ジャンプで飛び越えろ！",
+                ballStart: { x: 0, y: 1.5, z: 20 },
+                gems: [
+                    { x: 0, y: 0.5, z: 10 },
+                    { x: 0, y: -0.6, z: -1 },
+                    { x: 0, y: 4.5, z: -19 } 
+                ],
+                goal: { x: 0, y: -4.5, z: -31 },
+                hazards: [],
+                platforms: [
+                    { x: 0, y: 0, z: 19, w: 4, h: 0.5, d: 6, color: 0x06b6d4 }, 
+                    { x: 0, y: -1, z: 9, w: 3, h: 0.5, d: 12, color: 0x0891b2 }, 
+                    { x: 0, y: -2, z: -2, w: 3, h: 0.5, d: 8, color: 0x0891b2 }, 
+                    { x: 0, y: -2, z: -9, w: 3, h: 1.0, d: 4, color: 0x0e7490 }, 
+                    { x: 0, y: -5, z: -29, w: 10, h: 0.5, d: 10, color: 0x155e75 } 
+                ],
+                specialObjects: [
+                    { type: "booster", x: 0, y: -0.7, z: 12, w: 2, h: 0.1, d: 2, color: 0xf59e0b, forceZ: -20, forceY: 2 },
+                    { type: "booster", x: 0, y: -1.7, z: 1, w: 2, h: 0.1, d: 2, color: 0xf59e0b, forceZ: -22, forceY: 2 },
+                    { type: "booster", x: 0, y: -1.4, z: -9, w: 2, h: 0.1, d: 2, color: 0xef4444, forceZ: -28, forceY: 8 } 
+                ]
+            },
+            {
+                id: 7,
+                name: "ローラーコースター",
+                desc: "【超加速】超急降下の斜面を一気に滑り降りる！ヘアピン急カーブでのスピード管理が勝負の鍵！",
+                ballStart: { x: 0, y: 15.5, z: 24 },
+                gems: [
+                    { x: 0, y: 10.0, z: 11 }, 
+                    { x: 7.2, y: 2.8, z: -5 }, 
+                    { x: 6, y: -4.5, z: 18 } 
+                ],
+                goal: { x: 6, y: -6.0, z: 24 },
+                hazards: [],
+                platforms: [
+                    { x: 0, y: 14.5, z: 24, w: 4, h: 0.5, d: 4, color: 0xec4899 }, 
+                    { x: 0, y: 8.5, z: 11, w: 4, h: 0.5, d: 24, color: 0xdb2777, rx: -0.45 }, 
+                    { x: 3, y: 2.0, z: -5, w: 12, h: 0.5, d: 10, color: 0xbe185d }, 
+                    { x: 8.8, y: 3.0, z: -5, w: 0.4, h: 1.5, d: 10, color: 0xef4444 }, 
+                    { x: 6, y: -2.0, z: 11, w: 4, h: 0.5, d: 20, color: 0x9d174d, rx: 0.35 }, 
+                    { x: 6, y: -6.5, z: 23, w: 6, h: 0.5, d: 6, color: 0x831843 } 
+                ]
+            },
+            {
+                id: 8,
+                name: "ソニック・ピンボール",
+                desc: "【超加速】バンパーに当たると一瞬で最高速に跳ね返る！縦横無尽に飛び回るピンボール台！",
+                ballStart: { x: 0, y: 2.5, z: -8 },
+                gems: [
+                    { x: 0, y: 1.8, z: -2 }, 
+                    { x: -5, y: 1.2, z: -9 }, 
+                    { x: 5, y: 1.2, z: -9 }  
+                ],
+                goal: { x: 0, y: 0.8, z: -9 },
+                hazards: [],
+                platforms: [
+                    { x: 0, y: 0, z: 0, w: 16, h: 0.5, d: 24, color: 0x1e1b4b, rx: 0.08 }, 
+                    { x: -8.2, y: 0.8, z: 0, w: 0.4, h: 1.6, d: 24, color: 0x4f46e5 }, 
+                    { x: 8.2, y: 0.8, z: 0, w: 0.4, h: 1.6, d: 24, color: 0x4f46e5 },  
+                    { x: 0, y: 1.3, z: -12.2, w: 16, h: 1.6, d: 0.4, color: 0x4f46e5 }, 
+                    { x: -5, y: 0.3, z: 12, w: 6.5, h: 1.2, d: 0.4, color: 0x4f46e5, rx: 0.08 }, 
+                    { x: 5, y: 0.3, z: 12, w: 6.5, h: 1.2, d: 0.4, color: 0x4f46e5, rx: 0.08 }  
+                ],
+                specialObjects: [
+                    { type: "bumper", x: 0, y: 0.5, z: -2, r: 1.0, h: 1.2, color: 0xf43f5e, force: 20 },
+                    { type: "bumper", x: -4, y: 0.2, z: 2, r: 0.8, h: 1.2, color: 0x38bdf8, force: 18 },
+                    { type: "bumper", x: 4, y: 0.2, z: 2, r: 0.8, h: 1.2, color: 0x38bdf8, force: 18 },
+                    { type: "booster", x: -1.8, y: -0.4, z: 10, w: 2.2, h: 0.1, d: 1.5, color: 0x10b981, forceZ: -24, forceY: 5 },
+                    { type: "booster", x: 1.8, y: -0.4, z: 10, w: 2.2, h: 0.1, d: 1.5, color: 0x10b981, forceZ: -24, forceY: 5 }
+                ]
+            },
+            {
+                id: 9,
+                name: "アスレチック・オデッセイ",
+                desc: "【超ロング】全長130m！すべての物理ギミックを盛り込んだ極限のアスレチックに挑め！",
+                ballStart: { x: 0, y: 1.5, z: 42 },
+                gems: [
+                    { x: 0, y: 0.8, z: 24 }, 
+                    { x: 0, y: 3.5, z: -2 },  
+                    { x: -5, y: 0.8, z: -32 } 
+                ],
+                goal: { x: 0, y: 0.5, z: -55 },
+                fallLimit: -30,
+                hazards: [
+                    { id: "odyssey_wall", x: 0, y: 0.8, z: 24, w: 3.5, h: 0.8, d: 1, speed: 3.2, range: 4.0, type: "osc_x" },
+                    { id: "odyssey_spinner", x: 0, y: 0.6, z: -18, w: 5, h: 0.3, d: 0.5, speed: 2.5, type: "rotate_y" }
+                ],
+                platforms: [
+                    { x: 0, y: 0, z: 40, w: 6, h: 0.5, d: 6, color: 0x0f172a }, 
+                    { x: 0, y: 0, z: 24, w: 8, h: 0.5, d: 14, color: 0x3b82f6 }, 
+                    { x: 0, y: 0, z: 12, w: 3, h: 0.5, d: 4, color: 0x1d4ed8 },  
+                    { x: 0, y: 0, z: -10, w: 4, h: 0.5, d: 6, color: 0x1e40af }, 
+                    { x: 0, y: 0, z: -18, w: 8, h: 0.5, d: 8, color: 0x4f46e5 }, 
+                    { x: 0, y: 0, z: -28, w: 3, h: 0.5, d: 8, color: 0x5b21b6 }, 
+                    { x: -5, y: 0, z: -32, w: 2, h: 0.5, d: 2, color: 0xf59e0b }, 
+                    { x: -2.5, y: 0, z: -32, w: 3, h: 0.5, d: 0.4, color: 0x64748b }, 
+                    { x: 0, y: 0, z: -35, w: 3, h: 0.5, d: 4, color: 0xd946ef }, 
+                    { x: 0, y: 0, z: -53, w: 6, h: 0.5, d: 8, color: 0x10b981 }  
+                ],
+                movingPlatforms: [
+                    { id: "odyssey_lift", x: 0, y: 0, z: -43, w: 2.5, h: 0.5, d: 2.5, speed: 2.0, range: 4.5, axis: "z", startPos: 0 }
+                ],
+                specialObjects: [
+                    { type: "booster", x: 0, y: 0.3, z: 9, w: 1.5, h: 0.1, d: 1.5, color: 0xeab308, forceZ: -20, forceY: 3 }
+                ]
+            },
+            {
+                id: 10,
+                name: "ヘブンズ・クライシス",
+                desc: "【超ロング】超高低差！猛スピードで傾斜を滑り降り、弾かれるスリルを制覇せよ！",
+                ballStart: { x: 0, y: 25.5, z: 35 },
+                gems: [
+                    { x: 0, y: 15.0, z: 12 }, 
+                    { x: -3, y: 5.5, z: -10 }, 
+                    { x: 5, y: 0.8, z: -35 }   
+                ],
+                goal: { x: 0, y: 0.5, z: -46 },
+                fallLimit: -30, 
+                hazards: [],
+                platforms: [
+                    { x: 0, y: 24.5, z: 35, w: 5, h: 0.5, d: 5, color: 0xec4899 }, 
+                    { x: 0, y: 16.5, z: 16, w: 4, h: 0.5, d: 24, color: 0xdb2777, rx: -0.40 }, 
+                    { x: -2, y: 5.0, z: -10, w: 10, h: 0.5, d: 14, color: 0x1e1b4b }, 
+                    { x: 0, y: 0, z: -25, w: 4, h: 0.5, d: 6, color: 0x334155 }, 
+                    { x: 0, y: 0, z: -45, w: 6, h: 0.5, d: 6, color: 0x065f46 } 
+                ],
+                movingPlatforms: [
+                    { id: "heavens_lift", x: 0, y: 0, z: -35, w: 2.5, h: 0.5, d: 2.5, speed: 1.8, range: 4.0, axis: "x", startPos: 0 }
+                ],
+                specialObjects: [
+                    { type: "bumper", x: -2, y: 5.5, z: -12, r: 1.0, h: 1.2, color: 0x38bdf8, force: 20 },
+                    { type: "bumper", x: 2, y: 5.5, z: -8, r: 1.0, h: 1.2, color: 0xf43f5e, force: 22 },
+                    { type: "booster", x: -2, y: 4.6, z: -4, w: 1.5, h: 0.1, d: 1.5, color: 0xf59e0b, forceZ: -22, forceY: 1 }
+                ]
+            },
+            {
+                id: 11,
+                name: "ソニック・ピンボール・アリーナ",
+                desc: "【新感覚】物理演算ピンボール！すべてのジェムを回収で即クリア。左右キーかA/Dキーでフリッパーを操作、スペースで射出！",
+                isPinball: true,
+                ballStart: { x: 7.2, y: 3.5, z: 14 }, 
+                gems: [
+                    { x: 0, y: 2.5, z: -2 },
+                    { x: -4.5, y: 2.5, z: -6 },
+                    { x: 4.5, y: 2.5, z: -6 },
+                    { x: -3.0, y: 2.5, z: 2 },
+                    { x: 3.0, y: 2.5, z: 2 },
+                    { x: 0, y: 2.5, z: 8 }
+                ],
+                goal: { x: 0, y: -999, z: -999 }, 
+                fallLimit: -6,
+                platforms: [
+                    { x: 0, y: 1.0, z: 0, w: 16, h: 0.5, d: 36, color: 0x111827, rx: -0.15 }, 
+                    { x: 5.8, y: 2.0, z: 2.0, w: 0.3, h: 2.5, d: 24, color: 0x4f46e5, rx: -0.15 },
+                    { x: -8.1, y: 2.5, z: 0, w: 0.4, h: 3.0, d: 36, color: 0x4f46e5, rx: -0.15, isBouncy: true },
+                    { x: 8.1, y: 2.5, z: 0, w: 0.4, h: 3.0, d: 36, color: 0x4f46e5, rx: -0.15, isBouncy: true },
+                    { x: 0, y: 5.1, z: -18.1, w: 16.6, h: 3.0, d: 0.4, color: 0x4f46e5, rx: -0.15, isBouncy: true },
+                    { x: -5.2, y: -0.5, z: 12.8, w: 6.2, h: 1.5, d: 0.4, color: 0x4f46e5, rx: -0.15, ry: 0.4, isBouncy: true },
+                    { x: 5.2, y: -0.5, z: 12.8, w: 6.2, h: 1.5, d: 0.4, color: 0x4f46e5, rx: -0.15, ry: -0.4, isBouncy: true }
+                ],
+                specialObjects: [
+                    { type: "bumper", x: 0, y: 3.6, z: -8, r: 1.2, h: 1.5, color: 0xf43f5e, force: 25 },
+                    { type: "bumper", x: -3.8, y: 3.2, z: -5, r: 0.9, h: 1.5, color: 0x38bdf8, force: 20 },
+                    { type: "bumper", x: 3.8, y: 3.2, z: -5, r: 0.9, h: 1.5, color: 0x38bdf8, force: 20 },
+                    { type: "bumper", x: -5.5, y: 3.8, z: -10, r: 0.8, h: 1.5, color: 0xa855f7, force: 22 },
+                    { type: "bumper", x: 5.5, y: 3.8, z: -10, r: 0.8, h: 1.5, color: 0xa855f7, force: 22 },
+                    { type: "bumper", x: 0, y: 4.4, z: -13, r: 1.0, h: 1.5, color: 0x10b981, force: 26 },
+
+                    { type: "pin", x: -2.0, y: 3.4, z: -7, r: 0.2, h: 1.5, color: 0xe2e8f0 },
+                    { type: "pin", x: 2.0, y: 3.4, z: -7, r: 0.2, h: 1.5, color: 0xe2e8f0 },
+                    { type: "pin", x: -1.8, y: 2.8, z: -3, r: 0.2, h: 1.5, color: 0xe2e8f0 },
+                    { type: "pin", x: 1.8, y: 2.8, z: -3, r: 0.2, h: 1.5, color: 0xe2e8f0 },
+                    { type: "pin", x: -4.5, y: 3.0, z: -1, r: 0.2, h: 1.5, color: 0xe2e8f0 },
+                    { type: "pin", x: 4.5, y: 3.0, z: -1, r: 0.2, h: 1.5, color: 0xe2e8f0 },
+
+                    { type: "slingshot_left", x: -4.2, y: 0.6, z: 6.0, w: 1.2, h: 1.0, d: 4.0, color: 0xe11d48, force: 20 },
+                    { type: "slingshot_right", x: 4.2, y: 0.6, z: 6.0, w: 1.2, h: 1.0, d: 4.0, color: 0xe11d48, force: 20 },
+
+                    { type: "flipper_left", x: -2.3, y: -0.7, z: 12.0, w: 3.6, h: 0.6, d: 0.6, color: 0xf59e0b },
+                    { type: "flipper_right", x: 2.3, y: -0.7, z: 12.0, w: 3.6, h: 0.6, d: 0.6, color: 0xf59e0b }
+                ]
+            }
+        ];
+
+        // --- ゲーム状態管理 ---
+        const Game = {
+            activeStageIdx: 0,
+            isPlaying: false,
+            isPaused: false,
+            score: 0,
+            gemsCollected: 0,
+            timer: 0,
+            timerInterval: null,
+            controlMode: 'keyboard', 
+            cameraView: 'follow', 
+            gyroOffset: { alpha: 0, beta: 0, gamma: 0 },
+            touchInput: { x: 0, y: 0 },
+
+            scene: null,
+            camera: null,
+            renderer: null,
+            world: null,
+            
+            ballBody: null,
+            ballMesh: null,
+            physicsBodies: [], 
+            gemObjects: [],    
+            hazardObjects: [], 
+            movingPlatObjects: [], 
+            flipperObjects: [], 
+            goalMesh: null,
+            goalParticles: null,
+
+            keys: {
+                Forward: false,
+                Backward: false,
+                Left: false,
+                Right: false,
+                Jump: false
+            },
+
+            init() {
+                this.setupUIListeners();
+                this.renderStageSelector();
+                this.detectDeviceType();
+                
+                window.addEventListener('resize', () => this.onWindowResize());
+                window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+                window.addEventListener('keyup', (e) => this.handleKeyUp(e));
+
+                this.setupJoystick();
+                this.setupTouchControlForPinball();
+            },
+
+            detectDeviceType() {
+                const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+                if (isTouch) {
+                    document.getElementById('joystick-container').style.display = 'block';
+                    if (window.DeviceOrientationEvent) {
+                        document.getElementById('gyro-notice').classList.remove('hidden');
+                    }
+                }
+            },
+
+            renderStageSelector() {
+                const container = document.getElementById('stage-selector-container');
+                container.innerHTML = '';
+                
+                STAGES.forEach((stage, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = `w-full text-left p-2.5 rounded-xl border transition flex justify-between items-center shrink-0 ${
+                        idx === this.activeStageIdx 
+                        ? 'bg-sky-500/10 border-sky-400 text-white font-semibold' 
+                        : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
+                    }`;
+                    
+                    btn.innerHTML = `
+                        <div class="leading-snug">
+                            <span class="text-[10px] font-bold text-sky-400 block uppercase">STAGE 0${idx + 1}</span>
+                            <span class="font-bold text-sm block">${stage.name}</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5 line-clamp-1">${stage.desc}</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-500 ml-2"></i>
+                    `;
+                    
+                    btn.addEventListener('click', () => {
+                        this.activeStageIdx = idx;
+                        this.renderStageSelector();
+                        SoundFX.playBallHit(0.5);
+                    });
+                    
+                    container.appendChild(btn);
+                });
+            },
+
+            setupUIListeners() {
+                document.getElementById('btn-start-game').addEventListener('click', () => this.startGame());
+                document.getElementById('btn-pause').addEventListener('click', () => this.pauseGame());
+                document.getElementById('btn-resume').addEventListener('click', () => this.resumeGame());
+                document.getElementById('btn-restart-pause').addEventListener('click', () => this.resetCurrentStage());
+                document.getElementById('btn-back-to-menu').addEventListener('click', () => this.backToMenu());
+                document.getElementById('btn-restart').addEventListener('click', () => this.resetCurrentStage());
+                document.getElementById('btn-retry-gameover').addEventListener('click', () => this.resetCurrentStage());
+                document.getElementById('btn-menu-gameover').addEventListener('click', () => this.backToMenu());
+                document.getElementById('btn-next-stage').addEventListener('click', () => this.nextStage());
+                document.getElementById('btn-retry-clear').addEventListener('click', () => this.resetCurrentStage());
+                document.getElementById('btn-menu-clear').addEventListener('click', () => this.backToMenu());
+
+                const btnSound = document.getElementById('btn-sound');
+                btnSound.addEventListener('click', () => {
+                    SoundFX.muted = !SoundFX.muted;
+                    btnSound.innerHTML = SoundFX.muted 
+                        ? '<i class="fa-solid fa-volume-xmark text-lg text-red-400"></i>' 
+                        : '<i class="fa-solid fa-volume-high text-lg"></i>';
+                    SoundFX.init();
+                });
+
+                document.getElementById('btn-camera').addEventListener('click', () => {
+                    this.cameraView = this.cameraView === 'follow' ? 'overview' : 'follow';
+                    SoundFX.playBallHit(0.3);
+                });
+
+                const keyBtn = document.getElementById('control-keyboard');
+                const gyroBtn = document.getElementById('control-gyro');
+
+                keyBtn.addEventListener('click', () => {
+                    this.controlMode = 'keyboard';
+                    keyBtn.className = "bg-sky-600 border border-sky-400 text-xs font-bold p-2.5 rounded-xl flex items-center justify-center gap-1.5 text-white";
+                    gyroBtn.className = "bg-slate-800 border border-slate-700 text-slate-400 text-xs font-bold p-2.5 rounded-xl flex items-center justify-center gap-1.5 transition hover:border-slate-600";
+                    document.getElementById('btn-calibrate').classList.add('hidden');
+                    this.toggleTouchControlsVisibility();
+                    SoundFX.playBallHit(0.3);
+                });
+
+                gyroBtn.addEventListener('click', () => {
+                    this.requestGyroPermission().then(success => {
+                        if (success) {
+                            this.controlMode = 'gyro';
+                            gyroBtn.className = "bg-sky-600 border border-sky-400 text-xs font-bold p-2.5 rounded-xl flex items-center justify-center gap-1.5 text-white";
+                            keyBtn.className = "bg-slate-800 border border-slate-700 text-slate-400 text-xs font-bold p-2.5 rounded-xl flex items-center justify-center gap-1.5 transition hover:border-slate-600";
+                            document.getElementById('btn-calibrate').classList.remove('hidden');
+                            document.getElementById('joystick-container').style.display = 'none'; 
+                            this.calibrateGyro();
+                        } else {
+                            alert("ジャイロセンサー的利用権限が必要です。");
+                        }
+                    });
+                });
+
+                document.getElementById('btn-calibrate').addEventListener('click', () => this.calibrateGyro());
+            },
+
+            setupTouchControlForPinball() {
+                const handleTouchStart = (e) => {
+                    if (!this.isPlaying || this.isPaused) return;
+                    const stage = STAGES[this.activeStageIdx];
+                    if (!stage.isPinball) return;
+
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        const touch = e.changedTouches[i];
+                        if (touch.clientX < window.innerWidth / 2) {
+                            this.keys.Left = true;
+                        } else {
+                            this.keys.Right = true;
+                        }
+                    }
+                };
+
+                const handleTouchEnd = (e) => {
+                    if (!this.isPlaying || this.isPaused) return;
+                    const stage = STAGES[this.activeStageIdx];
+                    if (!stage.isPinball) return;
+
+                    if (e.touches.length === 0) {
+                        this.keys.Left = false;
+                        this.keys.Right = false;
+                    } else {
+                        let left = false;
+                        let right = false;
+                        for (let i = 0; i < e.touches.length; i++) {
+                            if (e.touches[i].clientX < window.innerWidth / 2) left = true;
+                            else right = true;
+                        }
+                        this.keys.Left = left;
+                        this.keys.Right = right;
+                    }
+                };
+
+                window.addEventListener('touchstart', handleTouchStart);
+                window.addEventListener('touchend', handleTouchEnd);
+            },
+
+            toggleTouchControlsVisibility() {
+                const stage = STAGES[this.activeStageIdx];
+                const joystick = document.getElementById('joystick-container');
+                const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+                
+                if (isTouch && this.controlMode === 'keyboard') {
+                    if (stage && stage.isPinball) {
+                        joystick.style.display = 'none'; 
+                    } else {
+                        joystick.style.display = 'block';
+                    }
+                } else {
+                    joystick.style.display = 'none';
+                }
+            },
+
+            async requestGyroPermission() {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    try {
+                        const permissionState = await DeviceOrientationEvent.requestPermission();
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', (e) => this.handleOrientation(e), true);
+                            return true;
+                        }
+                        return false;
+                    } catch (error) {
+                        console.error(error);
+                        return false;
+                    }
+                } else if (window.DeviceOrientationEvent) {
+                    window.addEventListener('deviceorientation', (e) => this.handleOrientation(e), true);
+                    return true;
+                }
+                return false;
+            },
+
+            calibrateGyro() {
+                this.gyroOffset = {
+                    alpha: this.currentOrientation?.alpha || 0,
+                    beta: this.currentOrientation?.beta || 0,
+                    gamma: this.currentOrientation?.gamma || 0
+                };
+            },
+
+            currentOrientation: null,
+            handleOrientation(event) {
+                this.currentOrientation = event;
+                if (this.controlMode !== 'gyro') return;
+
+                let rawBeta = event.beta || 0;  
+                let rawGamma = event.gamma || 0; 
+
+                let beta = rawBeta - this.gyroOffset.beta;
+                let gamma = rawGamma - this.gyroOffset.gamma;
+
+                const maxAngle = 25; 
+                this.touchInput.y = Math.max(-1, Math.min(1, beta / maxAngle));
+                this.touchInput.x = Math.max(-1, Math.min(1, gamma / maxAngle));
+            },
+
+            setupJoystick() {
+                const container = document.getElementById('joystick-container');
+                const knob = document.getElementById('joystick-knob');
+                let dragging = false;
+                let startX = 0;
+                let startY = 0;
+                const maxRadius = 35; 
+
+                const handleStart = (e) => {
+                    dragging = true;
+                    const touch = e.touches ? e.touches[0] : e;
+                    startX = touch.clientX;
+                    startY = touch.clientY;
+                    SoundFX.init();
+                };
+
+                const handleMove = (e) => {
+                    if (!dragging) return;
+                    const touch = e.touches ? e.touches[0] : e;
+                    const dx = touch.clientX - startX;
+                    const dy = touch.clientY - startY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    let moveX = dx;
+                    let moveY = dy;
+
+                    if (dist > maxRadius) {
+                        moveX = (dx / dist) * maxRadius;
+                        moveY = (dy / dist) * maxRadius;
+                    }
+
+                    knob.style.transform = `translate(${moveX}px, ${moveY}px)`;
+
+                    this.touchInput.x = moveX / maxRadius;
+                    this.touchInput.y = moveY / maxRadius;
+                };
+
+                const handleEnd = () => {
+                    dragging = false;
+                    knob.style.transform = 'translate(0px, 0px)';
+                    this.touchInput.x = 0;
+                    this.touchInput.y = 0;
+                };
+
+                container.addEventListener('mousedown', handleStart);
+                window.addEventListener('mousemove', handleMove);
+                window.addEventListener('mouseup', handleEnd);
+
+                container.addEventListener('touchstart', handleStart);
+                window.addEventListener('touchmove', handleMove);
+                window.addEventListener('touchend', handleEnd);
+            },
+
+            handleKeyDown(e) {
+                const controlKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'KeyR'];
+                const stage = STAGES[this.activeStageIdx];
+
+                if (this.isPlaying && !this.isPaused && controlKeys.includes(e.code)) {
+                    e.preventDefault();
+                }
+
+                SoundFX.init();
+                switch (e.code) {
+                    case 'ArrowUp':
+                    case 'KeyW': this.keys.Forward = true; break;
+                    case 'ArrowDown':
+                    case 'KeyS': this.keys.Backward = true; break;
+                    case 'ArrowLeft':
+                    case 'KeyA': 
+                        this.keys.Left = true; 
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD': 
+                        this.keys.Right = true; 
+                        break;
+                    case 'Space': 
+                        if (stage.isPinball) {
+                            if (this.ballBody && this.ballBody.position.z > 10 && this.ballBody.position.x > 6.0) {
+                                this.ballBody.velocity.set(0, 0, -32); 
+                                SoundFX.playJump();
+                            }
+                        } else if (!this.keys.Jump && this.isBallOnGround()) {
+                            this.keys.Jump = true;
+                            this.triggerJump();
+                        }
+                        break;
+                    case 'KeyR': this.resetCurrentStage(); break;
+                }
+            },
+
+            handleKeyUp(e) {
+                switch (e.code) {
+                    case 'ArrowUp':
+                    case 'KeyW': this.keys.Forward = false; break;
+                    case 'ArrowDown':
+                    case 'KeyS': this.keys.Backward = false; break;
+                    case 'ArrowLeft':
+                    case 'KeyA': 
+                        this.keys.Left = false; 
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD': 
+                        this.keys.Right = false; 
+                        break;
+                    case 'Space': this.keys.Jump = false; break;
+                }
+            },
+
+            isBallOnGround() {
+                if (!this.ballBody) return false;
+                if (STAGES[this.activeStageIdx].isPinball) return false;
+                return Math.abs(this.ballBody.velocity.y) < 0.2;
+            },
+
+            triggerJump() {
+                if (this.ballBody) {
+                    this.ballBody.velocity.y = 6.5; 
+                    SoundFX.playJump();
+                }
+            },
+
+            removeButtonFocus() {
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
+            },
+
+            startGame() {
+                this.removeButtonFocus();
+                SoundFX.init();
+                document.getElementById('modal-overlay').classList.add('opacity-0', 'pointer-events-none');
+                
+                this.setupThreeAndCannon();
+                this.buildStage(this.activeStageIdx);
+                
+                this.isPlaying = true;
+                this.isPaused = false;
+
+                this.startTimer();
+            },
+
+            pauseGame() {
+                this.removeButtonFocus();
+                if (!this.isPlaying || this.isPaused) return;
+                this.isPaused = true;
+                clearInterval(this.timerInterval);
+                
+                document.getElementById('modal-overlay').classList.remove('opacity-0', 'pointer-events-none');
+                document.getElementById('menu-start').classList.add('hidden');
+                document.getElementById('menu-pause').classList.remove('hidden');
+                document.getElementById('menu-gameover').classList.add('hidden');
+                document.getElementById('menu-clear').classList.add('hidden');
+            },
+
+            resumeGame() {
+                this.removeButtonFocus();
+                this.isPaused = false;
+                document.getElementById('modal-overlay').classList.add('opacity-0', 'pointer-events-none');
+                this.startTimer();
+            },
+
+            resetCurrentStage() {
+                this.removeButtonFocus();
+                clearInterval(this.timerInterval);
+                document.getElementById('modal-overlay').classList.add('opacity-0', 'pointer-events-none');
+                this.buildStage(this.activeStageIdx);
+                this.isPlaying = true;
+                this.isPaused = false;
+                this.startTimer();
+            },
+
+            nextStage() {
+                this.removeButtonFocus();
+                this.activeStageIdx = (this.activeStageIdx + 1) % STAGES.length;
+                this.resetCurrentStage();
+            },
+
+            backToMenu() {
+                this.removeButtonFocus();
+                clearInterval(this.timerInterval);
+                this.isPlaying = false;
+                this.isPaused = false;
+                
+                document.getElementById('modal-overlay').classList.remove('opacity-0', 'pointer-events-none');
+                document.getElementById('menu-start').classList.remove('hidden');
+                document.getElementById('menu-pause').classList.add('hidden');
+                document.getElementById('menu-gameover').classList.add('hidden');
+                document.getElementById('menu-clear').classList.add('hidden');
+                this.renderStageSelector();
+            },
+
+            startTimer() {
+                clearInterval(this.timerInterval);
+                const startTime = Date.now() - (this.timer * 1000);
+                this.timerInterval = setInterval(() => {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    this.timer = elapsed;
+                    document.getElementById('timer').innerText = elapsed.toFixed(2);
+                }, 10);
+            },
+
+            setupThreeAndCannon() {
+                if (this.scene) return; 
+
+                const container = document.getElementById('canvas-container');
+
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0f172a); 
+                this.scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                container.appendChild(this.renderer.domElement);
+
+                this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                this.scene.add(ambientLight);
+
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                dirLight.position.set(20, 40, 20);
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
+                dirLight.shadow.camera.near = 0.5;
+                dirLight.shadow.camera.far = 150;
+                const d = 25;
+                dirLight.shadow.camera.left = -d;
+                dirLight.shadow.camera.right = d;
+                dirLight.shadow.camera.top = d;
+                dirLight.shadow.camera.bottom = -d;
+                dirLight.shadow.bias = -0.0005;
+                this.scene.add(dirLight);
+
+                this.world = new CANNON.World();
+                this.world.gravity.set(0, -15, 0); 
+                this.world.broadphase = new CANNON.NaiveBroadphase();
+                this.world.solver.iterations = 10;
+
+                const groundMaterial = new CANNON.Material("groundMaterial");
+                const bouncyMaterial = new CANNON.Material("bouncyMaterial"); 
+                const ballMaterial = new CANNON.Material("ballMaterial");
+                
+                const contactMaterial = new CANNON.ContactMaterial(groundMaterial, ballMaterial, {
+                    friction: 0.15,
+                    restitution: 0.4
+                });
+
+                const bouncyContactMaterial = new CANNON.ContactMaterial(bouncyMaterial, ballMaterial, {
+                    friction: 0.05,
+                    restitution: 1.8 
+                });
+
+                this.world.addContactMaterial(contactMaterial);
+                this.world.addContactMaterial(bouncyContactMaterial);
+
+                this.groundMaterial = groundMaterial;
+                this.bouncyMaterial = bouncyMaterial;
+                this.ballMaterial = ballMaterial;
+
+                this.animate();
+            },
+
+            onWindowResize() {
+                if (!this.renderer) return;
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            },
+
+            buildStage(idx) {
+                const stage = STAGES[idx];
+                
+                this.timer = 0;
+                this.gemsCollected = 0;
+                document.getElementById('stage-title').innerText = `STAGE ${stage.id + 1}`;
+                document.getElementById('stage-name').innerText = stage.name;
+                document.getElementById('gems-count').innerText = `0/${stage.gems.length}`;
+
+                // 入力状態の完全初期化 (暴走即死防止)
+                this.keys.Forward = false;
+                this.keys.Backward = false;
+                this.keys.Left = false;
+                this.keys.Right = false;
+                this.keys.Jump = false;
+
+                if (stage.isPinball) {
+                    document.getElementById('guide-standard').classList.add('hidden');
+                    document.getElementById('guide-pinball').classList.remove('hidden');
+                    document.getElementById('guide-jump').classList.add('hidden');
+                } else {
+                    document.getElementById('guide-standard').classList.remove('hidden');
+                    document.getElementById('guide-pinball').classList.add('hidden');
+                    document.getElementById('guide-jump').classList.remove('hidden');
+                }
+
+                this.toggleTouchControlsVisibility();
+                this.cleanupScene();
+
+                this.physicsGravityY = stage.isPinball ? -18 : -15;
+                this.world.gravity.set(0, this.physicsGravityY, 0);
+
+                stage.platforms.forEach(p => {
+                    this.createPlatform(p.x, p.y, p.z, p.w, p.h, p.d, p.color, p.rx, p.ry, p.rz, p.isBouncy);
+                });
+
+                if (stage.movingPlatforms) {
+                    stage.movingPlatforms.forEach(mp => {
+                        this.createMovingPlatform(mp);
+                    });
+                }
+
+                if (stage.specialObjects) {
+                    stage.specialObjects.forEach(so => {
+                        this.createSpecialObject(so);
+                    });
+                }
+
+                if (stage.hazards) {
+                    stage.hazards.forEach(hz => {
+                        this.createHazard(hz);
+                    });
+                }
+
+                stage.gems.forEach(gem => {
+                    this.createGem(gem.x, gem.y, gem.z);
+                });
+
+                if (!stage.isPinball) {
+                    this.createGoal(stage.goal.x, stage.goal.y, stage.goal.z);
+                }
+
+                this.createBall(stage.ballStart.x, stage.ballStart.y, stage.ballStart.z);
+                this.createSky();
+            },
+
+            cleanupScene() {
+                this.physicsBodies.forEach(obj => {
+                    this.world.remove(obj.body);
+                    this.scene.remove(obj.mesh);
+                });
+                this.physicsBodies = [];
+
+                this.hazardObjects.forEach(obj => {
+                    this.world.remove(obj.body);
+                    this.scene.remove(obj.mesh);
+                });
+                this.hazardObjects = [];
+
+                this.movingPlatObjects.forEach(obj => {
+                    this.world.remove(obj.body);
+                    this.scene.remove(obj.mesh);
+                });
+                this.movingPlatObjects = [];
+
+                this.flipperObjects.forEach(obj => {
+                    this.world.remove(obj.body);
+                    this.scene.remove(obj.mesh);
+                });
+                this.flipperObjects = [];
+
+                this.gemObjects.forEach(gem => {
+                    this.scene.remove(gem.mesh);
+                });
+                this.gemObjects = [];
+
+                if (this.goalMesh) {
+                    this.scene.remove(this.goalMesh);
+                    this.goalMesh = null;
+                }
+                if (this.goalParticles) {
+                    this.scene.remove(this.goalParticles);
+                    this.goalParticles = null;
+                }
+
+                if (this.sky) {
+                    this.scene.remove(this.sky);
+                    this.sky = null;
+                }
+
+                if (this.ballBody) {
+                    this.world.remove(this.ballBody);
+                    this.ballBody = null;
+                }
+                if (this.ballMesh) {
+                    this.scene.remove(this.ballMesh);
+                    this.ballMesh = null;
+                }
+            },
+
+            createSky() {
+                const geometry = new THREE.BufferGeometry();
+                const vertices = [];
+                for (let i = 0; i < 500; i++) {
+                    const x = THREE.MathUtils.randFloatSpread(200);
+                    const y = THREE.MathUtils.randFloatSpread(200) + 50;
+                    const z = THREE.MathUtils.randFloatSpread(200);
+                    vertices.push(x, y, z);
+                }
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                const material = new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.8, transparent: true, opacity: 0.8 });
+                this.sky = new THREE.Points(geometry, material);
+                this.scene.add(this.sky);
+            },
+
+            createBall(x, y, z) {
+                const radius = 0.6;
+                const ballGeo = new THREE.SphereGeometry(radius, 32, 32);
+                const ballMat = new THREE.MeshStandardMaterial({
+                    color: 0xf43f5e,
+                    roughness: 0.2,
+                    metalness: 0.8,
+                    bumpScale: 0.05
+                });
+                
+                this.ballMesh = new THREE.Mesh(ballGeo, ballMat);
+                this.ballMesh.castShadow = true;
+                this.ballMesh.receiveShadow = true;
+                this.scene.add(this.ballMesh);
+
+                const sphereShape = new CANNON.Sphere(radius);
+                this.ballBody = new CANNON.Body({
+                    mass: 2,
+                    shape: sphereShape,
+                    position: new CANNON.Vec3(x, y, z),
+                    material: this.ballMaterial
+                });
+                
+                this.ballBody.velocity.set(0, 0, 0);
+                this.ballBody.angularVelocity.set(0, 0, 0);
+                this.ballBody.force.set(0, 0, 0);
+                this.ballBody.torque.set(0, 0, 0);
+                this.ballBody.angularDamping = 0.45; 
+                
+                this.world.addBody(this.ballBody);
+
+                this.ballBody.addEventListener("collide", (e) => {
+                    const relativeVelocity = e.contact.getImpactVelocityAlongNormal();
+                    if (relativeVelocity > 1) {
+                        const volume = Math.min(1, relativeVelocity / 10);
+                        SoundFX.playBallHit(volume);
+                    }
+                });
+            },
+
+            createPlatform(x, y, z, w, h, d, colorHex = 0x3b82f6, rx = 0, ry = 0, rz = 0, isBouncy = false) {
+                const platGeo = new THREE.BoxGeometry(w, h, d);
+                const platMat = new THREE.MeshStandardMaterial({
+                    color: colorHex,
+                    roughness: isBouncy ? 0.2 : 0.5,
+                    metalness: isBouncy ? 0.8 : 0.1,
+                    emissive: isBouncy ? colorHex : 0x000000,
+                    emissiveIntensity: isBouncy ? 0.2 : 0
+                });
+                const mesh = new THREE.Mesh(platGeo, platMat);
+                mesh.position.set(x, y, z);
+                mesh.rotation.set(rx || 0, ry || 0, rz || 0);
+                mesh.receiveShadow = true;
+                mesh.castShadow = true;
+                this.scene.add(mesh);
+
+                const halfExtents = new CANNON.Vec3(w/2, h/2, d/2);
+                const boxShape = new CANNON.Box(halfExtents);
+                const body = new CANNON.Body({
+                    mass: 0,
+                    shape: boxShape,
+                    position: new CANNON.Vec3(x, y, z),
+                    material: isBouncy ? this.bouncyMaterial : this.groundMaterial
+                });
+                
+                const q = new CANNON.Quaternion();
+                q.setFromEuler(rx || 0, ry || 0, rz || 0, 'XYZ');
+                body.quaternion.copy(q);
+                
+                this.world.addBody(body);
+                this.physicsBodies.push({ mesh, body });
+            },
+
+            createMovingPlatform(config) {
+                const { id, x, y, z, w, h, d, speed, range, axis, startPos } = config;
+                
+                const platGeo = new THREE.BoxGeometry(w, h, d);
+                const platMat = new THREE.MeshStandardMaterial({
+                    color: 0xd946ef, 
+                    roughness: 0.4,
+                    metalness: 0.2
+                });
+                const mesh = new THREE.Mesh(platGeo, platMat);
+                mesh.position.set(x, y, z);
+                mesh.receiveShadow = true;
+                mesh.castShadow = true;
+                this.scene.add(mesh);
+
+                const halfExtents = new CANNON.Vec3(w/2, h/2, d/2);
+                const boxShape = new CANNON.Box(halfExtents);
+                const body = new CANNON.Body({
+                    mass: 0, 
+                    shape: boxShape,
+                    position: new CANNON.Vec3(x, y, z),
+                    type: CANNON.Body.KINEMATIC
+                });
+                this.world.addBody(body);
+
+                this.movingPlatObjects.push({
+                    id, mesh, body, initialVal: config[axis], config
+                });
+            },
+
+            createSpecialObject(config) {
+                if (config.type === "booster") {
+                    const geo = new THREE.BoxGeometry(config.w, config.h, config.d);
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: config.color,
+                        emissive: config.color,
+                        emissiveIntensity: 0.3,
+                        roughness: 0.1
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(config.x, config.y, config.z);
+                    mesh.receiveShadow = true;
+                    this.scene.add(mesh);
+
+                    const halfExtents = new CANNON.Vec3(config.w/2, config.h/2 + 0.1, config.d/2);
+                    const boxShape = new CANNON.Box(halfExtents);
+                    const body = new CANNON.Body({
+                        mass: 0,
+                        shape: boxShape,
+                        position: new CANNON.Vec3(config.x, config.y, config.z)
+                    });
+                    this.world.addBody(body);
+
+                    this.physicsBodies.push({ 
+                        mesh, body, isBooster: true, 
+                        forceZ: config.forceZ !== undefined ? config.forceZ : -14, 
+                        forceY: config.forceY !== undefined ? config.forceY : 2.5 
+                    });
+                } else if (config.type === "bumper") {
+                    const geo = new THREE.CylinderGeometry(config.r, config.r, config.h, 16);
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: config.color,
+                        emissive: config.color,
+                        emissiveIntensity: 0.6,
+                        roughness: 0.1
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(config.x, config.y, config.z);
+                    
+                    const stage = STAGES[this.activeStageIdx];
+                    if (stage.isPinball) {
+                        mesh.rotation.x = -0.15;
+                    }
+                    
+                    mesh.receiveShadow = true;
+                    mesh.castShadow = true;
+                    this.scene.add(mesh);
+
+                    const cylinderShape = new CANNON.Cylinder(config.r, config.r, config.h, 16);
+                    const body = new CANNON.Body({
+                        mass: 0,
+                        shape: cylinderShape,
+                        position: new CANNON.Vec3(config.x, config.y, config.z),
+                        material: this.bouncyMaterial
+                    });
+                    const q = new CANNON.Quaternion();
+                    if (stage.isPinball) {
+                        q.setFromEuler(-0.15, 0, 0, 'XYZ');
+                    } else {
+                        q.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
+                    }
+                    body.quaternion.copy(q);
+                    this.world.addBody(body);
+
+                    this.physicsBodies.push({ mesh, body, isBumper: true, force: config.force || 18, colorHex: config.color });
+                } else if (config.type === "pin") {
+                    const geo = new THREE.CylinderGeometry(config.r, config.r, config.h, 8);
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: config.color,
+                        roughness: 0.1,
+                        metalness: 0.9,
+                        emissive: 0x475569,
+                        emissiveIntensity: 0.4
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(config.x, config.y, config.z);
+                    mesh.rotation.x = -0.15; 
+                    mesh.receiveShadow = true;
+                    this.scene.add(mesh);
+
+                    const cylinderShape = new CANNON.Cylinder(config.r, config.r, config.h, 8);
+                    const body = new CANNON.Body({
+                        mass: 0,
+                        shape: cylinderShape,
+                        position: new CANNON.Vec3(config.x, config.y, config.z),
+                        material: this.bouncyMaterial
+                    });
+                    const q = new CANNON.Quaternion();
+                    q.setFromEuler(-0.15, 0, 0, 'XYZ');
+                    body.quaternion.copy(q);
+                    this.world.addBody(body);
+
+                    this.physicsBodies.push({ mesh, body, isPin: true });
+                } else if (config.type === "slingshot_left" || config.type === "slingshot_right") {
+                    const geo = new THREE.BoxGeometry(config.w, config.h, config.d);
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: config.color,
+                        roughness: 0.2,
+                        metalness: 0.4,
+                        emissive: config.color,
+                        emissiveIntensity: 0.3
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(config.x, config.y, config.z);
+                    mesh.rotation.set(-0.15, config.type === "slingshot_left" ? 0.3 : -0.3, 0);
+                    mesh.receiveShadow = true;
+                    this.scene.add(mesh);
+
+                    const halfExtents = new CANNON.Vec3(config.w/2, config.h/2, config.d/2);
+                    const boxShape = new CANNON.Box(halfExtents);
+                    const body = new CANNON.Body({
+                        mass: 0,
+                        shape: boxShape,
+                        position: new CANNON.Vec3(config.x, config.y, config.z),
+                        material: this.bouncyMaterial
+                    });
+                    const q = new CANNON.Quaternion();
+                    q.setFromEuler(-0.15, config.type === "slingshot_left" ? 0.3 : -0.3, 0, 'XYZ');
+                    body.quaternion.copy(q);
+                    this.world.addBody(body);
+
+                    this.physicsBodies.push({ mesh, body, isSlingshot: true, force: config.force || 15 });
+                } else if (config.type === "flipper_left" || config.type === "flipper_right") {
+                    const isLeft = config.type === "flipper_left";
+                    const geo = new THREE.BoxGeometry(config.w, config.h, config.d);
+                    
+                    geo.translate(isLeft ? config.w/2 - 0.3 : -config.w/2 + 0.3, 0, 0);
+
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: config.color,
+                        roughness: 0.3,
+                        metalness: 0.6,
+                        emissive: config.color,
+                        emissiveIntensity: 0.2
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(config.x, config.y, config.z);
+                    mesh.rotation.x = -0.15; 
+                    mesh.receiveShadow = true;
+                    this.scene.add(mesh);
+
+                    const halfExtents = new CANNON.Vec3(config.w/2, config.h/2, config.d/2);
+                    const boxShape = new CANNON.Box(halfExtents);
+                    const body = new CANNON.Body({
+                        mass: 0,
+                        shape: boxShape,
+                        position: new CANNON.Vec3(config.x, config.y, config.z),
+                        type: CANNON.Body.KINEMATIC,
+                        material: this.bouncyMaterial
+                    });
+
+                    const shapeOffset = new CANNON.Vec3(isLeft ? config.w/2 - 0.3 : -config.w/2 + 0.3, 0, 0);
+                    body.addShape(boxShape, shapeOffset);
+
+                    const q = new CANNON.Quaternion();
+                    q.setFromEuler(-0.15, 0, 0, 'XYZ');
+                    body.quaternion.copy(q);
+                    this.world.addBody(body);
+
+                    this.flipperObjects.push({
+                        mesh, body, isLeft, initialYAngle: isLeft ? -0.2 : 0.2, currentYAngle: isLeft ? -0.2 : 0.2, config
+                    });
+                }
+            },
+
+            createHazard(hz) {
+                const hzGeo = new THREE.BoxGeometry(hz.w, hz.h, hz.d);
+                const hzMat = new THREE.MeshStandardMaterial({
+                    color: 0xef4444, 
+                    roughness: 0.3,
+                    metalness: 0.4
+                });
+                const mesh = new THREE.Mesh(hzGeo, hzMat);
+                mesh.position.set(hz.x, hz.y, hz.z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                this.scene.add(mesh);
+
+                const halfExtents = new CANNON.Vec3(hz.w/2, hz.h/2, hz.d/2);
+                const boxShape = new CANNON.Box(halfExtents);
+                
+                const body = new CANNON.Body({
+                    mass: 0,
+                    shape: boxShape,
+                    position: new CANNON.Vec3(hz.x, hz.y, hz.z),
+                    type: CANNON.Body.KINEMATIC
+                });
+                
+                this.world.addBody(body);
+                this.hazardObjects.push({
+                    id: hz.id,
+                    mesh: mesh,
+                    body: body,
+                    initialX: hz.x,
+                    initialZ: hz.z,
+                    config: hz
+                });
+            },
+
+            createGem(x, y, z) {
+                const gemGeo = new THREE.IcosahedronGeometry(0.35, 0);
+                const gemMat = new THREE.MeshStandardMaterial({
+                    color: 0xf59e0b, 
+                    roughness: 0.1,
+                    metalness: 0.9,
+                    emissive: 0xb45309,
+                    emissiveIntensity: 0.5
+                });
+                const mesh = new THREE.Mesh(gemGeo, gemMat);
+                mesh.position.set(x, y, z);
+                mesh.castShadow = true;
+                this.scene.add(mesh);
+
+                this.gemObjects.push({
+                    mesh, x, y, z, collected: false
+                });
+            },
+
+            createGoal(x, y, z) {
+                const goalRadius = 1.2;
+                const goalGeo = new THREE.CylinderGeometry(goalRadius, goalRadius, 0.1, 32);
+                const goalMat = new THREE.MeshStandardMaterial({
+                    color: 0x10b981, 
+                    roughness: 0.2,
+                    emissive: 0x10b981,
+                    emissiveIntensity: 0.5
+                });
+                this.goalMesh = new THREE.Mesh(goalGeo, goalMat);
+                this.goalMesh.position.set(x, y, z);
+                this.goalMesh.receiveShadow = true;
+                this.scene.add(this.goalMesh);
+
+                const pCount = 40;
+                const pGeo = new THREE.BufferGeometry();
+                const pPos = [];
+                for (let i = 0; i < pCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = Math.random() * goalRadius;
+                    const px = x + Math.cos(angle) * r;
+                    const py = y + Math.random() * 3;
+                    const pz = z + Math.sin(angle) * r;
+                    pPos.push(px, py, pz);
+                }
+                pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+                const pMat = new THREE.PointsMaterial({
+                    color: 0x34d399,
+                    size: 0.15,
+                    transparent: true,
+                    opacity: 0.7,
+                    blending: THREE.AdditiveBlending
+                });
+                this.goalParticles = new THREE.Points(pGeo, pMat);
+                this.scene.add(this.goalParticles);
+            },
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                if (!this.isPlaying || this.isPaused) return;
+
+                this.world.step(1/60);
+
+                if (this.ballBody && this.ballMesh) {
+                    this.ballMesh.position.copy(this.ballBody.position);
+                    this.ballMesh.quaternion.copy(this.ballBody.quaternion);
+
+                    this.applyPlayerControls();
+
+                    const currentStage = STAGES[this.activeStageIdx];
+                    const customFallLimit = currentStage.fallLimit !== undefined ? currentStage.fallLimit : -15;
+                    if (this.ballBody.position.y < customFallLimit) {
+                        this.handleGameOver();
+                    }
+
+                    this.checkSpecialCollisions();
+                }
+
+                this.updateFlippers();
+                this.updateHazards();
+                this.updateMovingPlatforms();
+                this.updateGems();
+                this.updateGoalEffects();
+                this.updateCamera();
+
+                this.renderer.render(this.scene, this.camera);
+            },
+
+            applyPlayerControls() {
+                const stage = STAGES[this.activeStageIdx];
+                if (stage.isPinball) return;
+
+                let moveX = 0;
+                let moveY = 0;
+
+                if (this.controlMode === 'keyboard') {
+                    if (this.keys.Forward) moveY = -1;
+                    if (this.keys.Backward) moveY = 1;
+                    if (this.keys.Left) moveX = -1;
+                    if (this.keys.Right) moveX = 1;
+                } else {
+                    moveX = this.touchInput.x;
+                    moveY = this.touchInput.y;
+                }
+
+                if (moveX !== 0 || moveY !== 0) {
+                    const forceMultiplier = 14;
+                    const force = new CANNON.Vec3(moveX * forceMultiplier, 0, moveY * forceMultiplier);
+                    this.ballBody.applyForce(force, this.ballBody.position);
+                }
+            },
+
+            updateFlippers() {
+                const stage = STAGES[this.activeStageIdx];
+                if (!stage.isPinball) return;
+
+                this.flipperObjects.forEach(flipper => {
+                    let targetYAngle = flipper.initialYAngle;
+
+                    if (flipper.isLeft) {
+                        if (this.keys.Left) {
+                            targetYAngle = 0.55; 
+                        }
+                    } else {
+                        if (this.keys.Right) {
+                            targetYAngle = -0.55;
+                        }
+                    }
+
+                    flipper.currentYAngle += (targetYAngle - flipper.currentYAngle) * 0.45;
+
+                    const q = new CANNON.Quaternion();
+                    q.setFromEuler(-0.15, flipper.currentYAngle, 0, 'XYZ');
+                    flipper.body.quaternion.copy(q);
+
+                    flipper.mesh.position.copy(flipper.body.position);
+                    flipper.mesh.quaternion.copy(flipper.body.quaternion);
+                });
+            },
+
+            checkSpecialCollisions() {
+                const ballPos = this.ballBody.position;
+                this.physicsBodies.forEach(obj => {
+                    if (obj.isBooster) {
+                        const dist = ballPos.distanceTo(obj.body.position);
+                        if (dist < 1.5) {
+                            const fz = obj.forceZ !== undefined ? obj.forceZ : -14;
+                            const fy = obj.forceY !== undefined ? obj.forceY : 2.5;
+                            this.ballBody.velocity.z = fz; 
+                            this.ballBody.velocity.y = fy; 
+                            SoundFX.playJump();
+                        }
+                    } else if (obj.isBumper) {
+                        const dist2D = new THREE.Vector2(ballPos.x, ballPos.z)
+                            .distanceTo(new THREE.Vector2(obj.body.position.x, obj.body.position.z));
+                        const radius = obj.mesh.geometry.parameters.radiusTop || 0.8;
+                        if (dist2D < radius + 0.75) {
+                            const dx = ballPos.x - obj.body.position.x;
+                            const dz = ballPos.z - obj.body.position.z;
+                            const len = Math.sqrt(dx*dx + dz*dz) || 1;
+                            const force = obj.force || 18;
+                            
+                            this.ballBody.velocity.x = (dx / len) * force;
+                            this.ballBody.velocity.z = (dz / len) * force;
+                            this.ballBody.velocity.y = 3.5; 
+                            
+                            obj.mesh.material.emissiveIntensity = 2.5;
+                            setTimeout(() => {
+                                if (obj.mesh && obj.mesh.material) {
+                                    obj.mesh.material.emissiveIntensity = 0.6;
+                                }
+                            }, 100);
+                            
+                            SoundFX.playBumper();
+                        }
+                    } else if (obj.isSlingshot) {
+                        const dist = ballPos.distanceTo(obj.body.position);
+                        if (dist < 2.0) {
+                            const dx = ballPos.x - obj.body.position.x;
+                            const dz = ballPos.z - obj.body.position.z;
+                            const len = Math.sqrt(dx*dx + dz*dz) || 1;
+                            const force = obj.force || 15;
+
+                            this.ballBody.velocity.x = (dx / len) * force;
+                            this.ballBody.velocity.z = (dz / len) * force;
+                            this.ballBody.velocity.y = 1.0;
+
+                            obj.mesh.material.emissiveIntensity = 1.8;
+                            setTimeout(() => {
+                                if (obj.mesh && obj.mesh.material) {
+                                    obj.mesh.material.emissiveIntensity = 0.3;
+                                }
+                            }, 100);
+
+                            SoundFX.playBumper();
+                        }
+                    }
+                });
+            },
+
+            updateHazards() {
+                const time = Date.now() * 0.001;
+
+                this.hazardObjects.forEach(hazard => {
+                    const { config, body, mesh, initialX, initialZ } = hazard;
+                    
+                    if (config.type === "osc_x") {
+                        const offset = Math.sin(time * config.speed) * config.range;
+                        body.position.x = initialX + offset;
+                    } else if (config.type === "rotate_y") {
+                        const angle = time * config.speed;
+                        const q = new CANNON.Quaternion();
+                        q.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle);
+                        body.quaternion.copy(q);
+                    }
+
+                    mesh.position.copy(body.position);
+                    mesh.quaternion.copy(body.quaternion);
+                });
+            },
+
+            updateMovingPlatforms() {
+                const time = Date.now() * 0.001;
+
+                this.movingPlatObjects.forEach(mp => {
+                    const { body, mesh, initialVal, config } = mp;
+                    const offset = Math.sin(time * config.speed + (config.startPos || 0)) * config.range;
+                    
+                    if (config.axis === 'z') {
+                        body.position.z = initialVal + offset;
+                    } else if (config.axis === 'x') {
+                        body.position.x = initialVal + offset;
+                    } else if (config.axis === 'y') {
+                        body.position.y = initialVal + offset;
+                    }
+
+                    mesh.position.copy(body.position);
+                });
+            },
+
+            updateGems() {
+                const time = Date.now() * 0.002;
+                const ballPos = this.ballMesh ? this.ballMesh.position : new THREE.Vector3();
+
+                this.gemObjects.forEach(gem => {
+                    if (gem.collected) return;
+
+                    gem.mesh.rotation.y = time * 2;
+                    gem.mesh.rotation.x = time * 0.5;
+                    gem.mesh.position.y = gem.y + Math.sin(time * 3) * 0.15;
+
+                    const dist = ballPos.distanceTo(gem.mesh.position);
+                    if (dist < 0.9) {
+                        gem.collected = true;
+                        this.scene.remove(gem.mesh);
+                        this.gemsCollected++;
+                        
+                        const stage = STAGES[this.activeStageIdx];
+                        document.getElementById('gems-count').innerText = `${this.gemsCollected}/${stage.gems.length}`;
+                        
+                        SoundFX.playGemCollect();
+
+                        if (stage.isPinball && this.gemsCollected === stage.gems.length) {
+                            this.handleStageClear();
+                        }
+                    }
+                });
+            },
+
+            updateGoalEffects() {
+                if (!this.goalParticles) return;
+
+                const positions = this.goalParticles.geometry.attributes.position.array;
+                const pCount = positions.length / 3;
+
+                for (let i = 0; i < pCount; i++) {
+                    const idx = i * 3;
+                    positions[idx + 1] += 0.02; 
+                    
+                    if (positions[idx + 1] > this.goalMesh.position.y + 3) {
+                        positions[idx + 1] = this.goalMesh.position.y;
+                    }
+                }
+                this.goalParticles.geometry.attributes.position.needsUpdate = true;
+
+                if (this.ballMesh && this.goalMesh) {
+                    const dist2D = new THREE.Vector2(this.ballMesh.position.x, this.ballMesh.position.z)
+                        .distanceTo(new THREE.Vector2(this.goalMesh.position.x, this.goalMesh.position.z));
+                    
+                    const heightDiff = Math.abs(this.ballMesh.position.y - this.goalMesh.position.y);
+
+                    if (dist2D < 1.0 && heightDiff < 1.2) {
+                        this.handleStageClear();
+                    }
+                }
+            },
+
+            updateCamera() {
+                if (!this.ballMesh) return;
+
+                const stage = STAGES[this.activeStageIdx];
+
+                if (stage.isPinball) {
+                    const targetX = 0;
+                    const targetY = 22.0;
+                    const targetZ = 16.5;
+
+                    this.camera.position.x += (targetX - this.camera.position.x) * 0.05;
+                    this.camera.position.y += (targetY - this.camera.position.y) * 0.05;
+                    this.camera.position.z += (targetZ - this.camera.position.z) * 0.05;
+
+                    this.camera.lookAt(0, 0, 1.5);
+                } else if (this.cameraView === 'follow') {
+                    const targetX = this.ballMesh.position.x;
+                    const targetY = this.ballMesh.position.y + 7.5; 
+                    const targetZ = this.ballMesh.position.z + 10;  
+
+                    this.camera.position.x += (targetX - this.camera.position.x) * 0.08;
+                    this.camera.position.y += (targetY - this.camera.position.y) * 0.08;
+                    this.camera.position.z += (targetZ - this.camera.position.z) * 0.08;
+
+                    this.camera.lookAt(this.ballMesh.position.x, this.ballMesh.position.y, this.ballMesh.position.z);
+                } else {
+                    const targetX = 0;
+                    const targetY = 18;
+                    const targetZ = 5;
+
+                    this.camera.position.x += (targetX - this.camera.position.x) * 0.05;
+                    this.camera.position.y += (targetY - this.camera.position.y) * 0.05;
+                    this.camera.position.z += (targetZ - this.camera.position.z) * 0.05;
+
+                    this.camera.lookAt(0, 0, 0);
+                }
+            },
+
+            handleGameOver() {
+                this.isPlaying = false;
+                clearInterval(this.timerInterval);
+                
+                SoundFX.playGameOver();
+
+                document.getElementById('modal-overlay').classList.remove('opacity-0', 'pointer-events-none');
+                document.getElementById('menu-start').classList.add('hidden');
+                document.getElementById('menu-pause').classList.add('hidden');
+                document.getElementById('menu-gameover').classList.remove('hidden');
+                document.getElementById('menu-clear').classList.add('hidden');
+            },
+
+            handleStageClear() {
+                this.isPlaying = false;
+                clearInterval(this.timerInterval);
+
+                SoundFX.playWin();
+
+                const stage = STAGES[this.activeStageIdx];
+                document.getElementById('clear-time').innerText = `${this.timer.toFixed(2)} 秒`;
+                document.getElementById('clear-gems').innerHTML = `<i class="fa-solid fa-gem mr-1 text-amber-400"></i>${this.gemsCollected}/${stage.gems.length}`;
+                
+                const btnNext = document.getElementById('btn-next-stage');
+                if (this.activeStageIdx === STAGES.length - 1) {
+                    btnNext.classList.add('hidden');
+                    document.getElementById('clear-message').innerText = "おめでとうございます！すべてのステージを完全制覇しました！";
+                } else {
+                    btnNext.classList.remove('hidden');
+                    document.getElementById('clear-message').innerText = "素晴らしいバランス感覚です！";
+                }
+
+                document.getElementById('modal-overlay').classList.remove('opacity-0', 'pointer-events-none');
+                document.getElementById('menu-start').classList.add('hidden');
+                document.getElementById('menu-pause').classList.add('hidden');
+                document.getElementById('menu-gameover').classList.add('hidden');
+                document.getElementById('menu-clear').classList.remove('hidden');
+            }
+        };
+
+        window.onload = () => {
+            Game.init();
+        };
+    </script>
+</body>
+</html>

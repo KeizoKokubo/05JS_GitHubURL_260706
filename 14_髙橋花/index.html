@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シンク・モルファー (Sync Morpher)</title>
+    <!-- Google Fontsの読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Dela+Gothic+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #08080f;
+            --panel-bg: rgba(15, 15, 28, 0.45);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-color: #f3f3f6;
+            --accent-color: #00f2fe;
+            --shadow-color: rgba(0, 242, 254, 0.3);
+            --mutation-color: #ff2e93;
+            --mutation-shadow: rgba(255, 46, 147, 0.35);
+            --time-color: #ffd000;
+            --time-shadow: rgba(255, 208, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background: #08080f;
+            color: var(--text-color);
+            font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 背景のフローティングネオン星雲 */
+        .neon-nebula {
+            position: fixed;
+            border-radius: 50%;
+            z-index: -2;
+            pointer-events: none;
+        }
+        .nebula-cyan {
+            top: -10%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 242, 254, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(80px);
+            animation: float-cyan 25s infinite alternate ease-in-out;
+        }
+        .nebula-pink {
+            bottom: -15%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 46, 147, 0.09) 0%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(90px);
+            animation: float-pink 30s infinite alternate ease-in-out;
+        }
+        .nebula-purple {
+            top: 40%;
+            right: 15%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(153, 0, 230, 0.06) 0%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(70px);
+            animation: float-purple 22s infinite alternate ease-in-out;
+        }
+
+        @keyframes float-cyan {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(80px, 60px) scale(1.15); }
+        }
+        @keyframes float-pink {
+            0% { transform: translate(0, 0) scale(1.1); }
+            100% { transform: translate(-70px, -80px) scale(0.9); }
+        }
+        @keyframes float-purple {
+            0% { transform: translate(0, 0) scale(0.9); }
+            100% { transform: translate(50px, -50px) scale(1.2); }
+        }
+
+        h1 {
+            font-family: 'Dela Gothic One', sans-serif;
+            font-size: 2.8rem;
+            margin-bottom: 2px;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 25px rgba(0, 242, 254, 0.4);
+            letter-spacing: 3px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #7a7a9a;
+            margin-bottom: 30px;
+            text-align: center;
+            letter-spacing: 3px;
+            font-weight: 600;
+        }
+
+        #game-container {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 25px;
+            width: 100%;
+            max-width: 950px;
+            z-index: 1;
+        }
+
+        /* グラスモルフィズムパネル */
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .left-panel {
+            width: 230px;
+        }
+
+        .right-panel {
+            width: 230px;
+        }
+
+        .board-wrapper {
+            position: relative;
+            background: rgba(8, 8, 15, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 6px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 242, 254, 0.15);
+            overflow: hidden;
+        }
+
+        canvas#game-board {
+            display: block;
+            border-radius: 14px;
+            background-color: #040408;
+        }
+
+        /* 情報ボックスのガラス加工 */
+        .info-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: inset 0 1px 10px rgba(0,0,0,0.2);
+        }
+
+        .info-title {
+            font-size: 0.78rem;
+            color: #72728d;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.8px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+        }
+
+        .accent-text {
+            color: var(--accent-color);
+            text-shadow: 0 0 12px var(--shadow-color);
+        }
+
+        /* ミニキャンバス (NEXT, HOLD) */
+        .preview-container {
+            display: flex;
+            justify-content: space-around;
+            gap: 12px;
+        }
+
+        .preview-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .preview-box canvas {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            margin-top: 6px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        /* 難易度・モード選択 */
+        .select-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .select-label {
+            font-size: 0.72rem;
+            color: #72728d;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        select {
+            background: #121222;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 12px var(--shadow-color);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            color: #06060c;
+            border: none;
+            border-radius: 12px;
+            padding: 13px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.2);
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 242, 254, 0.35);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: none;
+            transform: translateY(-1px);
+        }
+
+        /* 音声スイッチ */
+        .sound-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 11px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #242438;
+            transition: .3s;
+            border-radius: 22px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        /* 説明書 */
+        .controls-info {
+            font-size: 0.78rem;
+            color: #72728d;
+            line-height: 1.6;
+        }
+
+        .controls-info strong {
+            color: #fff;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        /* スマホ用タッチコントローラー */
+        #touch-controller {
+            display: none;
+            width: 100%;
+            max-width: 340px;
+            margin-top: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            z-index: 1;
+        }
+
+        .touch-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border-radius: 14px;
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .touch-btn:active {
+            background: rgba(0, 242, 254, 0.25);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px var(--shadow-color);
+        }
+
+        /* ログエリア */
+        #log-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        #log-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        /* アニメーション */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            #game-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            .left-panel, .right-panel {
+                width: 100%;
+                max-width: 340px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                padding: 15px;
+            }
+            .left-panel > *, .right-panel > * {
+                flex: 1 1 45%;
+                min-width: 140px;
+            }
+            .controls-info {
+                display: none;
+            }
+            #touch-controller {
+                display: grid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 背景ネオンエフェクト -->
+    <div class="neon-nebula nebula-cyan"></div>
+    <div class="neon-nebula nebula-pink"></div>
+    <div class="neon-nebula nebula-purple"></div>
+
+    <h1>シンク・モルファー</h1>
+    <div class="subtitle">SYNC MORPHER</div>
+
+    <div id="game-container">
+        <!-- 左側パネル (難易度、モード、説明、操作) -->
+        <div class="panel left-panel">
+            <div class="select-wrapper">
+                <span class="select-label">ゲームモード</span>
+                <select id="mode-select">
+                    <option value="endless" selected>Endless (無限)</option>
+                    <option value="timeattack">Time Attack (1分間)</option>
+                </select>
+            </div>
+
+            <div class="select-wrapper">
+                <span class="select-label">難易度 (色が追加されます)</span>
+                <select id="difficulty-select">
+                    <option value="easy">Easy (3色)</option>
+                    <option value="normal" selected>Normal (4色)</option>
+                    <option value="hard">Hard (5色)</option>
+                </select>
+            </div>
+
+            <button id="start-btn" class="btn">GAME START</button>
+            <button id="pause-btn" class="btn btn-secondary" disabled>PAUSE</button>
+
+            <div class="sound-toggle">
+                <span>SOUND EFFECTS</span>
+                <label class="switch">
+                    <input type="checkbox" id="sound-checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="controls-info">
+                <strong>操作方法 (PC):</strong>
+                A / D (または ←/→) : 移動<br>
+                S (または ↓) : 高速落下<br>
+                W / X (または ↑) : 右回転<br>
+                Z : 左回転<br>
+                Space : クイック設置<br>
+                C / Shift : ホールド
+            </div>
+        </div>
+
+        <!-- 中央ゲームボード -->
+        <div class="board-wrapper">
+            <canvas id="game-board" width="240" height="480"></canvas>
+        </div>
+
+        <!-- 右側パネル (NEXT、MUTATION、LIMIT、SCORE) -->
+        <div class="panel right-panel">
+            <div class="preview-container">
+                <div class="preview-box">
+                    <span class="info-title" style="font-size: 0.75rem;">Next</span>
+                    <canvas id="next-canvas" width="60" height="100"></canvas>
+                </div>
+                <div class="preview-box">
+                    <span class="info-title" style="font-size: 0.75rem;">Hold</span>
+                    <canvas id="hold-canvas" width="60" height="60"></canvas>
+                </div>
+            </div>
+
+            <!-- タイムアタック用残り時間表示 -->
+            <div class="info-box" id="time-container" style="display: none; border-color: var(--time-color);">
+                <div class="info-title" style="color: var(--time-color);">Time Limit</div>
+                <div id="time-val" class="info-value" style="color: var(--time-color); text-shadow: 0 0 10px var(--time-shadow);">60.0s</div>
+                <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden;">
+                    <div id="time-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #ffd000, #ffec80); transition: width 0.1s linear;"></div>
+                </div>
+            </div>
+
+            <!-- 15秒ごとのブロック変質タイマー -->
+            <div class="info-box" id="mutation-container">
+                <div class="info-title">Next Mutation</div>
+                <div id="mutation-val" class="info-value" style="color: var(--mutation-color); text-shadow: 0 0 10px var(--mutation-shadow);">15.0s</div>
+                <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden; margin-bottom: 10px;">
+                    <div id="mutation-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #ff2e93, #ff8fa3); transition: width 0.1s linear;"></div>
+                </div>
+                
+                <!-- 変質ログ表示エリア -->
+                <div class="info-title" style="font-size: 0.7rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 4px;">Mutation Log</div>
+                <div id="log-list" style="font-size: 0.75rem; font-family: monospace; display: flex; flex-direction: column; gap: 4px; color: #8a8aa3; text-align: left; max-height: 85px; overflow-y: auto; margin-top: 5px; padding: 2px;">
+                    <div style="text-align: center; color: #555; padding-top: 5px;">No mutations yet</div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <div class="info-title">Score</div>
+                <div id="score-val" class="info-value accent-text">0</div>
+            </div>
+
+            <div class="info-box">
+                <div class="info-title">Max Chain</div>
+                <div id="chain-val" class="info-value">0</div>
+            </div>
+
+            <div class="info-box">
+                <div class="info-title">Blocks / Level</div>
+                <div id="lines-level-val" class="info-value" style="font-size: 1.2rem;">0 / 1</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- スマホ操作用バーチャルパッド -->
+    <div id="touch-controller">
+        <div class="touch-btn" id="touch-hold">HOLD</div>
+        <div class="touch-btn" id="touch-rotate-l">↺ ROT</div>
+        <div class="touch-btn" id="touch-rotate-r">↻ ROT</div>
+        <div class="touch-btn" id="touch-left">←</div>
+        <div class="touch-btn" id="touch-hard">DROP</div>
+        <div class="touch-btn" id="touch-right">→</div>
+        <div></div>
+        <div class="touch-btn" id="touch-down">↓</div>
+        <div></div>
+    </div>
+
+    <script>
+        // ----------------------------------------------------
+        // Web Audio API による効果音再生クラス
+        // ----------------------------------------------------
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            play(type, chain = 1) {
+                if (!this.enabled) return;
+                this.init();
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                switch (type) {
+                    case 'move':
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(160, now);
+                        osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
+                        gain.gain.setValueAtTime(0.12, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                        osc.start(now);
+                        osc.stop(now + 0.08);
+                        break;
+                    case 'rotate':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(280, now);
+                        osc.frequency.exponentialRampToValueAtTime(420, now + 0.08);
+                        gain.gain.setValueAtTime(0.08, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                        osc.start(now);
+                        osc.stop(now + 0.08);
+                        break;
+                    case 'hold':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(350, now);
+                        osc.frequency.setValueAtTime(500, now + 0.06);
+                        gain.gain.setValueAtTime(0.08, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                        osc.start(now);
+                        osc.stop(now + 0.15);
+                        break;
+                    case 'drop':
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(90, now);
+                        osc.frequency.exponentialRampToValueAtTime(60, now + 0.12);
+                        gain.gain.setValueAtTime(0.15, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                        osc.start(now);
+                        osc.stop(now + 0.12);
+                        break;
+                    case 'warning':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(880, now);
+                        gain.gain.setValueAtTime(0.06, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                        osc.start(now);
+                        osc.stop(now + 0.05);
+                        break;
+                    case 'mutate': {
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(220, now);
+                        osc.frequency.exponentialRampToValueAtTime(580, now + 0.4);
+                        gain.gain.setValueAtTime(0.15, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
+                        osc.start(now);
+                        osc.stop(now + 0.45);
+
+                        const osc2 = this.ctx.createOscillator();
+                        const gain2 = this.ctx.createGain();
+                        osc2.connect(gain2);
+                        gain2.connect(this.ctx.destination);
+                        osc2.type = 'sine';
+                        osc2.frequency.setValueAtTime(330, now);
+                        osc2.frequency.exponentialRampToValueAtTime(880, now + 0.4);
+                        gain2.gain.setValueAtTime(0.08, now);
+                        gain2.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                        osc2.start(now);
+                        osc2.stop(now + 0.4);
+                        break;
+                    }
+                    case 'clear': {
+                        const baseFreq = 261.63 * Math.pow(1.122, chain - 1); 
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(baseFreq, now);
+                        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.25);
+                        gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+
+                        const osc3 = this.ctx.createOscillator();
+                        const gain3 = this.ctx.createGain();
+                        osc3.connect(gain3);
+                        gain3.connect(this.ctx.destination);
+                        osc3.type = 'triangle';
+                        osc3.frequency.setValueAtTime(baseFreq * 2, now + 0.05);
+                        osc3.frequency.exponentialRampToValueAtTime(baseFreq * 2.5, now + 0.3);
+                        gain3.gain.setValueAtTime(0.06, now + 0.05);
+                        gain3.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                        osc3.start(now + 0.05);
+                        osc3.stop(now + 0.3);
+                        break;
+                    }
+                    case 'timeup':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(600, now);
+                        osc.frequency.setValueAtTime(650, now + 0.1);
+                        osc.frequency.setValueAtTime(600, now + 0.2);
+                        gain.gain.setValueAtTime(0.15, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                        osc.start(now);
+                        osc.stop(now + 0.5);
+                        break;
+                    case 'gameover':
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(140, now);
+                        osc.frequency.linearRampToValueAtTime(50, now + 0.6);
+                        gain.gain.setValueAtTime(0.15, now);
+                        gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
+                        osc.start(now);
+                        osc.stop(now + 0.6);
+                        break;
+                }
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        // ----------------------------------------------------
+        // ゲームデータ・定数の設定
+        // ----------------------------------------------------
+        const canvas = document.getElementById('game-board');
+        const ctx = canvas.getContext('2d');
+
+        const nextCanvas = document.getElementById('next-canvas');
+        const nextCtx = nextCanvas.getContext('2d');
+
+        const holdCanvas = document.getElementById('hold-canvas');
+        const holdCtx = holdCanvas.getContext('2d');
+
+        const ROWS = 12; 
+        const COLS = 6;  
+        const BLOCK_SIZE = 40; 
+
+        const HIDDEN_ROWS = 2;
+        const TOTAL_ROWS = ROWS + HIDDEN_ROWS; 
+
+        const VACANT = -1; 
+
+        // ぷよのカラーパレット（鮮やかなHSL調整）
+        const COLORS = [
+            { name: "赤", light: "#ff5e97", dark: "#e60050", glow: "rgba(255, 94, 151, 0.4)" }, 
+            { name: "青", light: "#5ef0ff", dark: "#00a2e6", glow: "rgba(94, 240, 255, 0.4)" }, 
+            { name: "緑", light: "#5effa2", dark: "#00c850", glow: "rgba(94, 255, 162, 0.4)" }, 
+            { name: "黄", light: "#ffe85e", dark: "#cc9c00", glow: "rgba(255, 232, 94, 0.4)" }, 
+            { name: "紫", light: "#db5eff", dark: "#9c00cc", glow: "rgba(219, 94, 255, 0.4)" }  
+        ];
+
+        const DIFFICULTY_COLORS = {
+            easy: 3,   
+            normal: 4, 
+            hard: 5    
+        };
+
+        let board = [];
+        let score = 0;
+        let blocksClearedTotal = 0;
+        let level = 1;
+        let maxChain = 0;
+        let currentChain = 0;
+
+        let activePiece = null;
+        let nextPiece = null;
+        let holdPiece = null;
+        let canHold = true; 
+
+        let gameState = 'START'; 
+        let dropTimer = 0;
+        let dropInterval = 1000; 
+        let lastTime = 0;
+
+        // ゲームモード関連
+        let gameMode = 'endless'; 
+        const TIME_LIMIT_DURATION = 60000; 
+        let timeLeft = TIME_LIMIT_DURATION;
+        let lastTimeWarningSec = 60; 
+
+        // 15秒ごとのブロック変質タイマー
+        const MUTATION_INTERVAL = 15000; 
+        let mutationTimeLeft = MUTATION_INTERVAL;
+        let lastWarningSec = 15; 
+
+        // アニメーション・物理・エフェクト用変数
+        let currentClearingCells = []; 
+        let clearAnimationTimer = 0; 
+        let chainPopups = [];   
+        let mutationVisuals = []; 
+        let particles = []; 
+
+        // 設置済みぷよのぷにぷにバウンド用グリッド (体積保存・減衰振動)
+        let bounceGrid = [];
+        function initBounceGrid() {
+            bounceGrid = [];
+            for (let r = 0; r < TOTAL_ROWS; r++) {
+                bounceGrid[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    bounceGrid[r][c] = { scaleX: 1.0, scaleY: 1.0, vy: 0.0 };
+                }
+            }
+        }
+
+        // 操作中ブロックのしなり・バウンドスケール
+        let activePieceSquish = { scaleX: 1.0, scaleY: 1.0, vx: 0.0, vy: 0.0 };
+
+        // ----------------------------------------------------
+        // クラス定義
+        // ----------------------------------------------------
+
+        class Piece {
+            constructor(colorA, colorB) {
+                this.colorA = colorA; 
+                this.colorB = colorB; 
+                this.x = 2;           
+                this.y = HIDDEN_ROWS - 1; 
+                this.rot = 0;         
+            }
+
+            getRelativePos() {
+                const dx = [0, 1, 0, -1];
+                const dy = [-1, 0, 1, 0];
+                return { dx: dx[this.rot], dy: dy[this.rot] };
+            }
+
+            canMove(targetX, targetY, targetRot) {
+                const dx = [0, 1, 0, -1];
+                const dy = [-1, 0, 1, 0];
+                
+                if (targetX < 0 || targetX >= COLS || targetY >= TOTAL_ROWS) return false;
+                if (targetY >= 0 && board[targetY][targetX] !== VACANT) return false;
+
+                const bx = targetX + dx[targetRot];
+                const by = targetY + dy[targetRot];
+
+                if (bx < 0 || bx >= COLS || by >= TOTAL_ROWS) return false;
+                if (by >= 0 && board[by][bx] !== VACANT) return false;
+
+                return true;
+            }
+
+            moveLeft() {
+                if (this.canMove(this.x - 1, this.y, this.rot)) {
+                    this.x--;
+                    sound.play('move');
+                    activePieceSquish.scaleX = 0.85;
+                    activePieceSquish.scaleY = 1.15;
+                    return true;
+                }
+                return false;
+            }
+
+            moveRight() {
+                if (this.canMove(this.x + 1, this.y, this.rot)) {
+                    this.x++;
+                    sound.play('move');
+                    activePieceSquish.scaleX = 0.85;
+                    activePieceSquish.scaleY = 1.15;
+                    return true;
+                }
+                return false;
+            }
+
+            moveDown() {
+                if (this.canMove(this.x, this.y + 1, this.rot)) {
+                    this.y++;
+                    return true;
+                }
+                return false; 
+            }
+
+            rotate(clockwise = true) {
+                const dir = clockwise ? 1 : 3;
+                const nextRot = (this.rot + dir) % 4;
+
+                if (this.canMove(this.x, this.y, nextRot)) {
+                    this.rot = nextRot;
+                    sound.play('rotate');
+                    activePieceSquish.scaleX = 1.15;
+                    activePieceSquish.scaleY = 0.85;
+                    activePieceSquish.vy = 0.12;
+                    return true;
+                }
+
+                const kicks = [
+                    [-1, 0], 
+                    [1, 0],  
+                    [0, -1], 
+                    [0, 1]   
+                ];
+
+                for (let i = 0; i < kicks.length; i++) {
+                    const kx = this.x + kicks[i][0];
+                    const ky = this.y + kicks[i][1];
+                    if (this.canMove(kx, ky, nextRot)) {
+                        this.x = kx;
+                        this.y = ky;
+                        this.rot = nextRot;
+                        sound.play('rotate');
+                        activePieceSquish.scaleX = 1.15;
+                        activePieceSquish.scaleY = 0.85;
+                        activePieceSquish.vy = 0.12;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            hardDrop() {
+                let dropCount = 0;
+                while (this.canMove(this.x, this.y + 1, this.rot)) {
+                    this.y++;
+                    dropCount++;
+                }
+                sound.play('drop');
+                activePieceSquish.scaleX = 1.3;
+                activePieceSquish.scaleY = 0.7;
+                activePieceSquish.vy = -0.2;
+                return dropCount;
+            }
+
+            getGhostY() {
+                let ghostY = this.y;
+                while (this.canMove(this.x, ghostY + 1, this.rot)) {
+                    ghostY++;
+                }
+                return ghostY;
+            }
+        }
+
+        // ----------------------------------------------------
+        // ゲーム制御ロジック
+        // ----------------------------------------------------
+
+        function initBoard() {
+            board = [];
+            for (let r = 0; r < TOTAL_ROWS; r++) {
+                board[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    board[r][c] = VACANT;
+                }
+            }
+            initBounceGrid();
+        }
+
+        function generateRandomPiece() {
+            const diff = document.getElementById('difficulty-select').value;
+            const colorCount = DIFFICULTY_COLORS[diff];
+            
+            const colorA = Math.floor(Math.random() * colorCount);
+            const colorB = Math.floor(Math.random() * colorCount);
+
+            return new Piece(colorA, colorB);
+        }
+
+        function startGame() {
+            sound.init();
+            initBoard();
+            
+            score = 0;
+            blocksClearedTotal = 0;
+            level = 1;
+            maxChain = 0;
+            currentChain = 0;
+            holdPiece = null;
+            canHold = true;
+            mutationTimeLeft = MUTATION_INTERVAL;
+            lastWarningSec = 15;
+            mutationVisuals = [];
+            currentClearingCells = [];
+            particles = [];
+            
+            activePieceSquish = { scaleX: 1.0, scaleY: 1.0, vx: 0.0, vy: 0.0 };
+
+            gameMode = document.getElementById('mode-select').value;
+            if (gameMode === 'timeattack') {
+                timeLeft = TIME_LIMIT_DURATION;
+                lastTimeWarningSec = 60;
+                document.getElementById('time-container').style.display = 'block';
+            } else {
+                document.getElementById('time-container').style.display = 'none';
+            }
+
+            document.getElementById('log-list').innerHTML = `<div style="text-align: center; color: #555; padding-top: 5px;">No mutations yet</div>`;
+
+            updateScoreUI();
+
+            nextPiece = generateRandomPiece();
+            spawnNextPiece();
+
+            gameState = 'PLAYING';
+            document.getElementById('start-btn').innerText = "RESTART";
+            document.getElementById('pause-btn').disabled = false;
+            document.getElementById('pause-btn').innerText = "PAUSE";
+            
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnNextPiece() {
+            activePiece = nextPiece;
+            nextPiece = generateRandomPiece();
+
+            if (!activePiece.canMove(activePiece.x, activePiece.y, activePiece.rot)) {
+                triggerGameOver();
+            }
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            sound.play('gameover');
+            document.getElementById('pause-btn').disabled = true;
+        }
+
+        function triggerTimeUp() {
+            gameState = 'TIMEUP';
+            sound.play('timeup');
+            document.getElementById('pause-btn').disabled = true;
+        }
+
+        function lockPiece() {
+            const rel = activePiece.getRelativePos();
+            const ax = activePiece.x;
+            const ay = activePiece.y;
+            const bx = activePiece.x + rel.dx;
+            const by = activePiece.y + rel.dy;
+
+            if (ay >= 0) {
+                board[ay][ax] = activePiece.colorA;
+                triggerCellBounce(ay, ax, 0.72);
+            }
+            if (by >= 0) {
+                board[by][bx] = activePiece.colorB;
+                triggerCellBounce(by, bx, 0.72);
+            }
+
+            activePiece = null;
+            canHold = true;
+
+            startGravityCheck();
+        }
+
+        function triggerCellBounce(r, c, scaleYVal) {
+            if (r >= 0 && r < TOTAL_ROWS && c >= 0 && c < COLS) {
+                bounceGrid[r][c].scaleY = scaleYVal;
+                bounceGrid[r][c].vy = (1.0 - scaleYVal) * 0.45; 
+            }
+        }
+
+        function startGravityCheck() {
+            gameState = 'DROP_DELAY';
+            applyGravityStep();
+        }
+
+        function applyGravityStep() {
+            let moved = false;
+            for (let r = TOTAL_ROWS - 2; r >= 0; r--) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] !== VACANT && board[r + 1][c] === VACANT) {
+                        board[r + 1][c] = board[r][c];
+                        board[r][c] = VACANT;
+                        
+                        const temp = bounceGrid[r][c];
+                        bounceGrid[r + 1][c] = { scaleX: temp.scaleX, scaleY: temp.scaleY, vy: temp.vy };
+                        bounceGrid[r][c] = { scaleX: 1.0, scaleY: 1.0, vy: 0.0 };
+
+                        if (r + 2 >= TOTAL_ROWS || board[r + 2][c] !== VACANT) {
+                            triggerCellBounce(r + 1, c, 0.75); 
+                        }
+                        
+                        moved = true;
+                    }
+                }
+            }
+
+            if (moved) {
+                setTimeout(() => {
+                    if (gameState === 'DROP_DELAY') {
+                        applyGravityStep();
+                    }
+                }, 80);
+            } else {
+                checkLineClears(); 
+            }
+        }
+
+        function addMutationLog(r, c, oldColorIdx, newColorIdx) {
+            const logList = document.getElementById('log-list');
+            
+            if (logList.innerHTML.includes("No mutations yet")) {
+                logList.innerHTML = "";
+            }
+
+            const oldColor = COLORS[oldColorIdx];
+            const newColor = COLORS[newColorIdx];
+            const colName = c + 1;
+            const rowName = ROWS - (r - HIDDEN_ROWS); 
+
+            const entry = document.createElement('div');
+            entry.style.display = "flex";
+            entry.style.alignItems = "center";
+            entry.style.justifyContent = "space-between";
+            entry.style.borderBottom = "1px solid rgba(255, 255, 255, 0.04)";
+            entry.style.padding = "3px 2px";
+            entry.style.animation = "fadeIn 0.3s ease";
+
+            const oldDot = `<span style="color: ${oldColor.light}; text-shadow: 0 0 5px ${oldColor.dark}; font-weight: bold;">●${oldColor.name}</span>`;
+            const newDot = `<span style="color: ${newColor.light}; text-shadow: 0 0 5px ${newColor.dark}; font-weight: bold;">●${newColor.name}</span>`;
+
+            entry.innerHTML = `
+                <span style="color: #6a6a84; text-shadow: none;">[列${colName}, 行${rowName}]</span>
+                <span>${oldDot} ➔ ${newDot}</span>
+            `;
+
+            logList.insertBefore(entry, logList.firstChild);
+
+            while (logList.children.length > 6) {
+                logList.removeChild(logList.lastChild);
+            }
+            logList.scrollTop = 0;
+        }
+
+        function triggerMutation() {
+            sound.play('mutate');
+
+            const occupiedCells = [];
+            for (let r = 0; r < TOTAL_ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] !== VACANT) {
+                        occupiedCells.push({ r, c, originalColor: board[r][c] });
+                    }
+                }
+            }
+
+            if (occupiedCells.length > 0) {
+                const diff = document.getElementById('difficulty-select').value;
+                const colorCount = DIFFICULTY_COLORS[diff];
+
+                const mutateCount = Math.min(3, Math.max(1, Math.floor(occupiedCells.length * 0.2)));
+                
+                occupiedCells.sort(() => Math.random() - 0.5);
+                const targets = occupiedCells.slice(0, mutateCount);
+
+                for (let target of targets) {
+                    let newColor = target.originalColor;
+                    if (colorCount > 1) {
+                        while (newColor === target.originalColor) {
+                            newColor = Math.floor(Math.random() * colorCount);
+                        }
+                    }
+                    board[target.r][target.c] = newColor;
+
+                    triggerCellBounce(target.r, target.c, 0.8);
+
+                    addMutationLog(target.r, target.c, target.originalColor, newColor);
+
+                    mutationVisuals.push({
+                        r: target.r,
+                        c: target.c,
+                        alpha: 1.0 
+                    });
+                }
+
+                chainPopups.push({
+                    text: `MUTATION!`,
+                    x: canvas.width / 2,
+                    y: canvas.height / 2 - 20,
+                    alpha: 1.2,
+                    color: '#ff2e93'
+                });
+            } else {
+                const logList = document.getElementById('log-list');
+                if (logList.innerHTML.includes("No mutations yet")) {
+                    logList.innerHTML = "";
+                }
+                const entry = document.createElement('div');
+                entry.style.textAlign = "center";
+                entry.style.color = "#444";
+                entry.style.padding = "4px";
+                entry.innerText = "No blocks to mutate";
+                logList.insertBefore(entry, logList.firstChild);
+                if (logList.children.length > 6) {
+                    logList.removeChild(logList.lastChild);
+                }
+            }
+
+            startGravityCheck();
+        }
+
+        function checkLineClears() {
+            let clearingCells = [];
+            let visited = [];
+            for (let r = 0; r < TOTAL_ROWS; r++) {
+                visited[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    visited[r][c] = false;
+                }
+            }
+
+            function dfs(r, c, color, group) {
+                if (r < 0 || r >= TOTAL_ROWS || c < 0 || c >= COLS) return;
+                if (visited[r][c] || board[r][c] !== color) return;
+
+                visited[r][c] = true;
+                group.push({ r, c });
+
+                dfs(r - 1, c, color, group); 
+                dfs(r + 1, c, color, group); 
+                dfs(r, c - 1, color, group); 
+                dfs(r, c + 1, color, group); 
+            }
+
+            for (let r = 0; r < TOTAL_ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] !== VACANT && !visited[r][c]) {
+                        let group = [];
+                        dfs(r, c, board[r][c], group);
+                        
+                        if (group.length >= 4) {
+                            clearingCells = clearingCells.concat(group);
+                        }
+                    }
+                }
+            }
+
+            if (clearingCells.length > 0) {
+                gameState = 'CLEAR_DELAY';
+                currentChain++;
+                if (currentChain > maxChain) {
+                    maxChain = currentChain;
+                }
+                
+                sound.play('clear', currentChain);
+
+                let avgR = 0;
+                for (let cell of clearingCells) {
+                    avgR += cell.r;
+                }
+                avgR = Math.floor(avgR / clearingCells.length);
+                createChainPopup(avgR, currentChain);
+
+                currentClearingCells = clearingCells;
+                clearAnimationTimer = 0;
+                animateClear();
+            } else {
+                currentChain = 0;
+                if (activePiece === null && gameState !== 'GAMEOVER' && gameState !== 'TIMEUP') {
+                    spawnNextPiece();
+                }
+                if (gameState !== 'GAMEOVER' && gameState !== 'TIMEUP') {
+                    gameState = 'PLAYING';
+                }
+            }
+        }
+
+        function animateClear() {
+            if (clearAnimationTimer < 5) {
+                clearAnimationTimer++;
+                setTimeout(() => {
+                    if (gameState === 'CLEAR_DELAY') {
+                        animateClear();
+                    }
+                }, 80);
+            } else {
+                spawnClearParticles();
+                performLineClears();
+            }
+        }
+
+        function spawnClearParticles() {
+            for (let cell of currentClearingCells) {
+                const px = cell.c * BLOCK_SIZE + BLOCK_SIZE / 2;
+                const py = (cell.r - HIDDEN_ROWS) * BLOCK_SIZE + BLOCK_SIZE / 2;
+                const color = COLORS[board[cell.r][cell.c]];
+                
+                for (let i = 0; i < 10; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1.5 + Math.random() * 4.5;
+                    particles.push({
+                        x: px,
+                        y: py,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 1.8, 
+                        color: color.light,
+                        shadowColor: color.dark,
+                        size: 2.5 + Math.random() * 4,
+                        alpha: 1.0,
+                        decay: 0.02 + Math.random() * 0.025
+                    });
+                }
+            }
+        }
+
+        function performLineClears() {
+            for (let cell of currentClearingCells) {
+                board[cell.r][cell.c] = VACANT;
+                bounceGrid[cell.r][cell.c] = { scaleX: 1.0, scaleY: 1.0, vy: 0.0 };
+            }
+
+            const basePoints = currentClearingCells.length * 10;
+            const chainMultiplier = 1 + (currentChain - 1) * 1.5;
+            score += Math.floor(basePoints * chainMultiplier);
+
+            blocksClearedTotal += currentClearingCells.length;
+            level = Math.floor(blocksClearedTotal / 10) + 1;
+            dropInterval = Math.max(100, 1100 - (level * 120));
+
+            updateScoreUI();
+            currentClearingCells = [];
+
+            startGravityCheck();
+        }
+
+        function createChainPopup(row, chainCount) {
+            chainPopups.push({
+                text: `${chainCount} CHAIN!`,
+                x: canvas.width / 2,
+                y: (row - HIDDEN_ROWS) * BLOCK_SIZE + 20,
+                alpha: 1.0,
+                color: chainCount >= 4 ? '#ff007f' : '#00f2fe'
+            });
+        }
+
+        function handleHold() {
+            if (!canHold || gameState !== 'PLAYING') return;
+
+            sound.play('hold');
+            if (holdPiece === null) {
+                holdPiece = new Piece(activePiece.colorA, activePiece.colorB);
+                spawnNextPiece();
+            } else {
+                const temp = new Piece(activePiece.colorA, activePiece.colorB);
+                activePiece = new Piece(holdPiece.colorA, holdPiece.colorB);
+                holdPiece = temp;
+            }
+            
+            canHold = false;
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score-val').innerText = score;
+            document.getElementById('chain-val').innerText = maxChain;
+            document.getElementById('lines-level-val').innerText = `${blocksClearedTotal} / ${level}`;
+        }
+
+        // ----------------------------------------------------
+        // バウンド物理演算の更新
+        // ----------------------------------------------------
+        function updateBouncePhysics() {
+            const k = 0.16;  
+            const d = 0.81;  
+            for (let r = 0; r < TOTAL_ROWS; r++) {
+                if (!bounceGrid[r]) continue;
+                for (let c = 0; c < COLS; c++) {
+                    const cell = bounceGrid[r][c];
+                    if (!cell) continue;
+                    const force = (1.0 - cell.scaleY) * k;
+                    cell.vy += force;
+                    cell.vy *= d;
+                    cell.scaleY += cell.vy;
+                    cell.scaleX = 2.0 - cell.scaleY; 
+                }
+            }
+
+            const activePieceForce = (1.0 - activePieceSquish.scaleY) * 0.16;
+            activePieceSquish.vy += activePieceForce;
+            activePieceSquish.vy *= 0.82;
+            activePieceSquish.scaleY += activePieceSquish.vy;
+            activePieceSquish.scaleX = 2.0 - activePieceSquish.scaleY;
+        }
+
+        // ----------------------------------------------------
+        // 描画処理 (レンダリング)
+        // ----------------------------------------------------
+
+        function drawPuyo(targetCtx, cx, cy, radius, colorIndex, eyesStatus = 'normal', isGhost = false, scaleX = 1.0, scaleY = 1.0) {
+            const color = COLORS[colorIndex];
+            if (!color) return;
+            
+            targetCtx.save();
+            targetCtx.translate(cx, cy);
+            targetCtx.scale(scaleX, scaleY);
+
+            if (isGhost) {
+                targetCtx.globalAlpha = 0.22;
+            }
+
+            const grad = targetCtx.createRadialGradient(-radius/3, -radius/3, radius/6, 0, 0, radius);
+            grad.addColorStop(0, color.light);
+            grad.addColorStop(0.85, color.dark);
+            grad.addColorStop(1, '#000000');
+
+            targetCtx.fillStyle = grad;
+            targetCtx.beginPath();
+            targetCtx.arc(0, 0, radius - 1.5, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            if (!isGhost) {
+                targetCtx.shadowBlur = 15;
+                targetCtx.shadowColor = color.dark;
+                targetCtx.strokeStyle = color.light;
+                targetCtx.lineWidth = 1.2;
+                targetCtx.stroke();
+                targetCtx.shadowBlur = 0; 
+            } else {
+                targetCtx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+                targetCtx.lineWidth = 1;
+                targetCtx.stroke();
+            }
+
+            targetCtx.fillStyle = "rgba(255, 255, 255, 0.65)";
+            targetCtx.beginPath();
+            targetCtx.arc(-radius/3, -radius/3, radius/4.5, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            if (!isGhost) {
+                const eyeOffset = radius / 3.6;
+                const eyeRadius = radius / 5.2;
+                const pupilRadius = eyeRadius / 2.0;
+
+                if (eyesStatus === 'normal') {
+                    targetCtx.fillStyle = "white";
+                    targetCtx.beginPath();
+                    targetCtx.arc(-eyeOffset, -eyeOffset/2, eyeRadius, 0, Math.PI * 2);
+                    targetCtx.arc(eyeOffset, -eyeOffset/2, eyeRadius, 0, Math.PI * 2);
+                    targetCtx.fill();
+
+                    targetCtx.fillStyle = "black";
+                    targetCtx.beginPath();
+                    targetCtx.arc(-eyeOffset + 0.8, -eyeOffset/2, pupilRadius, 0, Math.PI * 2);
+                    targetCtx.arc(eyeOffset - 0.8, -eyeOffset/2, pupilRadius, 0, Math.PI * 2);
+                    targetCtx.fill();
+
+                    targetCtx.fillStyle = "white";
+                    targetCtx.beginPath();
+                    targetCtx.arc(-eyeOffset + 0.4, -eyeOffset/2 - 0.8, 0.8, 0, Math.PI * 2);
+                    targetCtx.arc(eyeOffset - 1.2, -eyeOffset/2 - 0.8, 0.8, 0, Math.PI * 2);
+                    targetCtx.fill();
+
+                } else if (eyesStatus === 'dead') {
+                    targetCtx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+                    targetCtx.lineWidth = 2.4;
+                    
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(-eyeOffset - 3, -eyeOffset/2 - 3);
+                    targetCtx.lineTo(-eyeOffset + 3, -eyeOffset/2 + 3);
+                    targetCtx.moveTo(-eyeOffset + 3, -eyeOffset/2 - 3);
+                    targetCtx.lineTo(-eyeOffset - 3, -eyeOffset/2 + 3);
+                    
+                    targetCtx.moveTo(eyeOffset - 3, -eyeOffset/2 - 3);
+                    targetCtx.lineTo(eyeOffset + 3, -eyeOffset/2 + 3);
+                    targetCtx.moveTo(eyeOffset + 3, -eyeOffset/2 - 3);
+                    targetCtx.lineTo(eyeOffset - 3, -eyeOffset/2 + 3);
+                    targetCtx.stroke();
+                } else if (eyesStatus === 'blink') {
+                    targetCtx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+                    targetCtx.lineWidth = 2.2;
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(-eyeOffset - 3, -eyeOffset/2);
+                    targetCtx.lineTo(-eyeOffset + 3, -eyeOffset/2);
+                    targetCtx.moveTo(eyeOffset - 3, -eyeOffset/2);
+                    targetCtx.lineTo(eyeOffset + 3, -eyeOffset/2);
+                    targetCtx.stroke();
+                }
+            }
+
+            targetCtx.restore();
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.035)";
+            ctx.lineWidth = 1;
+            for (let c = 1; c < COLS; c++) {
+                ctx.beginPath();
+                ctx.moveTo(c * BLOCK_SIZE, 0);
+                ctx.lineTo(c * BLOCK_SIZE, canvas.height);
+                ctx.stroke();
+            }
+            for (let r = 1; r < ROWS; r++) {
+                ctx.beginPath();
+                ctx.moveTo(0, r * BLOCK_SIZE);
+                ctx.lineTo(canvas.width, r * BLOCK_SIZE);
+                ctx.stroke();
+            }
+
+            for (let r = HIDDEN_ROWS; r < TOTAL_ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const colorIndex = board[r][c];
+                    if (colorIndex !== VACANT) {
+                        const cy = r - HIDDEN_ROWS;
+                        
+                        let eye = 'normal';
+                        const isClearing = currentClearingCells.some(cell => cell.r === r && cell.c === c);
+                        if (isClearing) {
+                            eye = (clearAnimationTimer % 2 === 0) ? 'dead' : 'blink';
+                        } else {
+                            eye = (Math.floor(Date.now() / 250) % 35 === 0) ? 'blink' : 'normal';
+                        }
+                        
+                        const bs = bounceGrid[r][c];
+                        
+                        drawPuyo(
+                            ctx,
+                            c * BLOCK_SIZE + BLOCK_SIZE/2,
+                            cy * BLOCK_SIZE + BLOCK_SIZE/2,
+                            BLOCK_SIZE/2,
+                            colorIndex,
+                            eye,
+                            false,
+                            bs ? bs.scaleX : 1.0,
+                            bs ? bs.scaleY : 1.0
+                        );
+                    }
+                }
+            }
+
+            for (let i = mutationVisuals.length - 1; i >= 0; i--) {
+                const vis = mutationVisuals[i];
+                const cy = vis.r - HIDDEN_ROWS;
+                if (cy >= 0) {
+                    ctx.save();
+                    ctx.globalAlpha = vis.alpha;
+                    ctx.fillStyle = "#ffffff";
+                    ctx.shadowBlur = 25;
+                    ctx.shadowColor = "#ffffff";
+                    ctx.beginPath();
+                    ctx.arc(vis.c * BLOCK_SIZE + BLOCK_SIZE/2, cy * BLOCK_SIZE + BLOCK_SIZE/2, BLOCK_SIZE/2 - 1, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                vis.alpha -= 0.12; 
+                if (vis.alpha <= 0) {
+                    mutationVisuals.splice(i, 1);
+                }
+            }
+
+            if (gameState === 'PLAYING' && activePiece) {
+                const ghostY = activePiece.getGhostY();
+                const rel = activePiece.getRelativePos();
+                
+                const gax = activePiece.x;
+                const gay = ghostY - HIDDEN_ROWS;
+                const gbx = activePiece.x + rel.dx;
+                const gby = ghostY + rel.dy - HIDDEN_ROWS;
+
+                if (gay >= 0) {
+                    drawPuyo(ctx, gax * BLOCK_SIZE + BLOCK_SIZE/2, gay * BLOCK_SIZE + BLOCK_SIZE/2, BLOCK_SIZE/2, activePiece.colorA, 'normal', true);
+                }
+                if (gby >= 0) {
+                    drawPuyo(ctx, gbx * BLOCK_SIZE + BLOCK_SIZE/2, gby * BLOCK_SIZE + BLOCK_SIZE/2, BLOCK_SIZE/2, activePiece.colorB, 'normal', true);
+                }
+
+                const ax = activePiece.x;
+                const ay = activePiece.y - HIDDEN_ROWS;
+                const bx = activePiece.x + rel.dx;
+                const by = activePiece.y + rel.dy - HIDDEN_ROWS;
+
+                const blinkStatus = (Math.floor(Date.now() / 200) % 25 === 0) ? 'blink' : 'normal';
+                const psx = activePieceSquish.scaleX;
+                const psy = activePieceSquish.scaleY;
+
+                if (ay >= 0) {
+                    drawPuyo(ctx, ax * BLOCK_SIZE + BLOCK_SIZE/2, ay * BLOCK_SIZE + BLOCK_SIZE/2, BLOCK_SIZE/2, activePiece.colorA, blinkStatus, false, psx, psy);
+                }
+                if (by >= 0) {
+                    drawPuyo(ctx, bx * BLOCK_SIZE + BLOCK_SIZE/2, by * BLOCK_SIZE + BLOCK_SIZE/2, BLOCK_SIZE/2, activePiece.colorB, blinkStatus, false, psx, psy);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = p.shadowColor;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.12; 
+                p.alpha -= p.decay;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            for (let i = chainPopups.length - 1; i >= 0; i--) {
+                const pop = chainPopups[i];
+                ctx.save();
+                ctx.globalAlpha = Math.min(1.0, pop.alpha);
+                ctx.fillStyle = pop.color;
+                ctx.font = "800 24px 'Outfit', sans-serif";
+                ctx.textAlign = "center";
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = pop.color;
+                ctx.fillText(pop.text, pop.x, pop.y);
+                ctx.restore();
+
+                pop.y -= 0.8; 
+                pop.alpha -= 0.015; 
+                if (pop.alpha <= 0) {
+                    chainPopups.splice(i, 1);
+                }
+            }
+
+            if (gameState === 'GAMEOVER') {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#ff2e93";
+                ctx.font = "800 26px 'Outfit', sans-serif";
+                ctx.textAlign = "center";
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "#ff2e93";
+                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "400 14px 'Outfit', sans-serif";
+                ctx.fillText("Press Start to Try Again", canvas.width / 2, canvas.height / 2 + 15);
+            } else if (gameState === 'TIMEUP') {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#ffd000";
+                ctx.font = "800 26px 'Outfit', sans-serif";
+                ctx.textAlign = "center";
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "#ffd000";
+                ctx.fillText("TIME UP!", canvas.width / 2, canvas.height / 2 - 25);
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "600 16px 'Outfit', sans-serif";
+                ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 15);
+                ctx.font = "400 12px 'Outfit', sans-serif";
+                ctx.fillText("Press Start to Play Again", canvas.width / 2, canvas.height / 2 + 40);
+            } else if (gameState === 'PAUSED') {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#00f2fe";
+                ctx.font = "800 26px 'Outfit', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
+            } else if (gameState === 'START') {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#fff";
+                ctx.font = "600 16px 'Outfit', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("Click START Button", canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillText("to Play!", canvas.width / 2, canvas.height / 2 + 15);
+            }
+        }
+
+        function drawPreviews() {
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            if (nextPiece) {
+                const cx = nextCanvas.width / 2;
+                const r = 13; 
+                drawPuyo(nextCtx, cx, 30, r, nextPiece.colorB); 
+                drawPuyo(nextCtx, cx, 60, r, nextPiece.colorA); 
+            }
+
+            holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+            if (holdPiece) {
+                const cx = holdCanvas.width / 2;
+                const r = 13;
+                drawPuyo(holdCtx, cx, 20, r, holdPiece.colorB);
+                drawPuyo(holdCtx, cx, 42, r, holdPiece.colorA);
+            }
+        }
+
+        // ----------------------------------------------------
+        // ゲームメインループ
+        // ----------------------------------------------------
+        function gameLoop(time) {
+            const dt = time - lastTime;
+            lastTime = time;
+
+            updateBouncePhysics();
+
+            if (gameState === 'PLAYING') {
+                dropTimer += dt;
+                if (dropTimer >= dropInterval) {
+                    if (activePiece) {
+                        const moved = activePiece.moveDown();
+                        if (!moved) {
+                            lockPiece();
+                        }
+                    }
+                    dropTimer = 0;
+                }
+
+                if (gameMode === 'timeattack') {
+                    timeLeft -= dt;
+                    if (timeLeft < 0) {
+                        timeLeft = 0;
+                    }
+
+                    const timeSec = (timeLeft / 1000).toFixed(1);
+                    document.getElementById('time-val').innerText = `${timeSec}s`;
+
+                    const timePercent = (timeLeft / TIME_LIMIT_DURATION) * 100;
+                    document.getElementById('time-bar').style.width = `${timePercent}%`;
+
+                    const currentTValSec = Math.ceil(timeLeft / 1000);
+                    if (currentTValSec <= 5 && currentTValSec > 0 && currentTValSec !== lastTimeWarningSec) {
+                        sound.play('warning');
+                        lastTimeWarningSec = currentTValSec;
+                    }
+
+                    if (timeLeft <= 0) {
+                        triggerTimeUp();
+                    }
+                }
+
+                mutationTimeLeft -= dt;
+                if (mutationTimeLeft < 0) {
+                    mutationTimeLeft = 0;
+                }
+
+                const sec = (mutationTimeLeft / 1000).toFixed(1);
+                document.getElementById('mutation-val').innerText = `${sec}s`;
+                
+                const percent = (mutationTimeLeft / MUTATION_INTERVAL) * 100;
+                document.getElementById('mutation-bar').style.width = `${percent}%`;
+
+                const currentSecInt = Math.ceil(mutationTimeLeft / 1000);
+                if (currentSecInt <= 3 && currentSecInt > 0 && currentSecInt !== lastWarningSec) {
+                    sound.play('warning');
+                    lastWarningSec = currentSecInt;
+                }
+
+                if (mutationTimeLeft <= 0) {
+                    triggerMutation();
+                    mutationTimeLeft = MUTATION_INTERVAL;
+                    lastWarningSec = 15; 
+                }
+            }
+
+            drawBoard();
+            drawPreviews();
+
+            if (gameState !== 'START' && gameState !== 'GAMEOVER' && gameState !== 'TIMEUP') {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // ----------------------------------------------------
+        // 操作イベントハンドリング (WASD & 矢印キー)
+        // ----------------------------------------------------
+
+        document.addEventListener('keydown', (e) => {
+            if (gameState !== 'PLAYING' || !activePiece) return;
+
+            const key = e.key.toLowerCase();
+
+            switch (key) {
+                case 'a':
+                case 'arrowleft': 
+                    activePiece.moveLeft();
+                    break;
+                case 'd':
+                case 'arrowright': 
+                    activePiece.moveRight();
+                    break;
+                case 'w':
+                case 'arrowup':
+                case 'x': 
+                    activePiece.rotate(true);
+                    break;
+                case 'z': 
+                    activePiece.rotate(false);
+                    break;
+                case 's':
+                case 'arrowdown': 
+                    activePiece.moveDown();
+                    dropTimer = 0; 
+                    break;
+                case ' ': 
+                    activePiece.hardDrop();
+                    lockPiece();
+                    e.preventDefault();
+                    break;
+                case 'c':
+                case 'shift': 
+                    handleHold();
+                    break;
+            }
+        });
+
+        // ----------------------------------------------------
+        // UIコントロールとの連携
+        // ----------------------------------------------------
+        document.getElementById('start-btn').addEventListener('click', () => {
+            startGame();
+            document.getElementById('start-btn').blur(); 
+        });
+
+        const pauseBtn = document.getElementById('pause-btn');
+        pauseBtn.addEventListener('click', () => {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                pauseBtn.innerText = "RESUME";
+            } else if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                pauseBtn.innerText = "PAUSE";
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+            pauseBtn.blur();
+        });
+
+        const soundCheckbox = document.getElementById('sound-checkbox');
+        soundCheckbox.addEventListener('change', () => {
+            sound.enabled = soundCheckbox.checked;
+        });
+
+        document.getElementById('difficulty-select').addEventListener('change', () => {
+            document.getElementById('difficulty-select').blur();
+        });
+
+        document.getElementById('mode-select').addEventListener('change', () => {
+            document.getElementById('mode-select').blur();
+        });
+
+        // ----------------------------------------------------
+        // スマホ用タッチコントローラーのバインド
+        // ----------------------------------------------------
+        function bindTouchBtn(id, action) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (gameState === 'PLAYING' && activePiece) {
+                    action();
+                }
+            });
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                if (gameState === 'PLAYING' && activePiece) {
+                    action();
+                }
+            });
+        }
+
+        bindTouchBtn('touch-left', () => activePiece.moveLeft());
+        bindTouchBtn('touch-right', () => activePiece.moveRight());
+        bindTouchBtn('touch-rotate-l', () => activePiece.rotate(false));
+        bindTouchBtn('touch-rotate-r', () => activePiece.rotate(true));
+        bindTouchBtn('touch-down', () => {
+            activePiece.moveDown();
+            dropTimer = 0;
+        });
+        bindTouchBtn('touch-hard', () => {
+            activePiece.hardDrop();
+            lockPiece();
+        });
+        bindTouchBtn('touch-hold', () => handleHold());
+
+        // 初回描画
+        initBoard();
+        drawBoard();
+        drawPreviews();
+
+    </script>
+</body>
+</html>

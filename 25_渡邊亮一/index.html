@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>リズムファクトリー - Pop UI & Hardcore</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800;900&display=swap');
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #FEE159; 
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            color: #333;
+            transition: background-color 0.3s;
+        }
+
+        body.fever { 
+            background-color: #2D1457; 
+        }
+        
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: none; 
+            pointer-events: none; 
+        }
+        
+        .screen.active { display: flex; }
+
+        .center-screen {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(254, 225, 89, 0.95); 
+            text-align: center;
+        }
+        
+        body.fever .center-screen {
+            background: rgba(45, 20, 87, 0.95);
+        }
+
+        #game-over-screen {
+            background: rgba(45, 20, 87, 0.95); 
+            color: white;
+        }
+
+        .title-logo {
+            font-size: 80px;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            color: #FF5151;
+            text-shadow: 
+                -4px -4px 0 #fff,  
+                 4px -4px 0 #fff,
+                -4px  4px 0 #fff,
+                 4px  4px 0 #fff,
+                 6px  8px 0 #333; 
+            font-weight: 900;
+            transform: rotate(-3deg);
+        }
+        
+        #game-over-screen .title-logo {
+            color: #00F3FF;
+            text-shadow: 
+                -4px -4px 0 #FF00FF,  
+                 4px -4px 0 #FF00FF,
+                 6px  8px 0 #fff;
+            transform: rotate(0deg);
+            margin-bottom: 30px;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 25px;
+            margin-top: 40px;
+            pointer-events: auto;
+        }
+
+        .btn {
+            font-size: 28px;
+            color: #333;
+            font-weight: 900;
+            background: #fff;
+            padding: 15px 40px;
+            border: 6px solid #333;
+            border-radius: 50px; 
+            box-shadow: 0 8px 0 #333; 
+            cursor: pointer;
+            transition: all 0.1s;
+            pointer-events: auto;
+        }
+
+        .btn:active {
+            transform: translateY(8px);
+            box-shadow: 0 0 0 #333;
+        }
+
+        .btn.easy { background-color: #82E0AA; }
+        .btn.normal { background-color: #85C1E9; }
+        .btn.hard { background-color: #F1948A; }
+
+        #game-over-screen .btn {
+            background-color: #FFD24C;
+            margin-top: 40px;
+        }
+
+        .tutorial-box {
+            background: #fff;
+            border: 4px solid #333;
+            border-radius: 20px;
+            padding: 20px 40px;
+            margin-top: 20px;
+            box-shadow: 4px 4px 0 #333;
+            max-width: 800px;
+        }
+
+        .tutorial-box p {
+            font-size: 18px;
+            color: #333;
+            font-weight: 800;
+            line-height: 1.6;
+            margin: 0;
+            text-align: left;
+        }
+
+        .highlight-red { color: #E74C3C; }
+        .highlight-blue { color: #3498DB; }
+        .highlight-purple { color: #9B59B6; }
+        .highlight-orange { color: #F39C12; }
+        .highlight-gray { color: #7F8C8D; }
+
+        #game-ui { display: none; pointer-events: none; }
+        #game-ui.active { display: block; }
+
+        .ui-top {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .ui-badge {
+            background: #fff;
+            border: 4px solid #333;
+            border-radius: 15px;
+            padding: 10px 20px;
+            font-size: 28px;
+            font-weight: 900;
+            color: #333;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-score { background-color: #fff; }
+        .badge-bpm { background-color: #FF7676; color: white; text-shadow: 2px 2px 0 #333; }
+        .badge-combo { background-color: #4DB8FF; color: white; text-shadow: 2px 2px 0 #333; }
+        
+        body.fever .ui-badge {
+            border-color: #00F3FF;
+            box-shadow: 0 0 15px #00F3FF;
+        }
+        
+        #lives-container {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 40px;
+            display: flex;
+            gap: 15px;
+            background: rgba(255,255,255,0.7);
+            padding: 5px 20px;
+            border-radius: 30px;
+            border: 3px solid #333;
+        }
+        body.fever #lives-container {
+            background: rgba(0,0,0,0.5);
+            border-color: #00F3FF;
+        }
+
+        .heart { 
+            color: #FF5151; 
+            text-shadow: 2px 2px 0 #333; 
+            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.3));
+        }
+        .heart.lost { 
+            color: #888; 
+            text-shadow: none; 
+            opacity: 0.4; 
+            filter: none;
+        }
+        
+        #turn-indicator {
+            position: absolute;
+            top: 180px;
+            width: 100%;
+            text-align: center;
+            font-size: 48px;
+            font-weight: 900;
+            text-shadow: 
+                -3px -3px 0 #fff,  
+                 3px -3px 0 #fff,
+                -3px  3px 0 #fff,
+                 3px  3px 0 #fff,
+                 5px  5px 0 #333;
+            opacity: 0;
+            transition: opacity 0.2s;
+            letter-spacing: 2px;
+        }
+
+        #fever-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0) rotate(-10deg);
+            font-size: 120px;
+            font-weight: 900;
+            color: #FF00FF;
+            text-shadow: 
+                -4px -4px 0 #00F3FF,  
+                 4px -4px 0 #00F3FF,
+                -4px  4px 0 #00F3FF,
+                 4px  4px 0 #00F3FF,
+                 10px 10px 0 #fff;
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+        }
+        #fever-text.active {
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            opacity: 1;
+        }
+
+        .result-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .result-text {
+            font-size: 32px;
+            font-weight: 800;
+            background: rgba(0,0,0,0.5);
+            padding: 15px 40px;
+            border-radius: 20px;
+            border: 3px solid #00F3FF;
+            margin-bottom: 20px;
+        }
+        .result-val { color: #FFD24C; font-size: 48px; display: block; }
+        
+        .rank-box {
+            background: #fff;
+            color: #333;
+            border: 6px solid #333;
+            border-radius: 20px;
+            padding: 20px 40px;
+            font-size: 40px;
+            font-weight: 900;
+            box-shadow: 6px 6px 0 #00F3FF;
+            margin-bottom: 20px;
+            width: 500px;
+        }
+        #final-rank-val {
+            font-size: 64px;
+            display: block;
+            text-shadow: 3px 3px 0 #333;
+        }
+        
+        /* お邪魔用フィルター */
+        #dark-filter {
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity 0.5s;
+        }
+        #dark-filter.active {
+            opacity: 0.95; /* 目と枠線以外ほぼ見えなくなる */
+        }
+    </style>
+</head>
+<body>
+    <div id="dark-filter"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="title-screen" class="screen center-screen active">
+        <h1 class="title-logo">リズムファクトリー</h1>
+        
+        <div class="tutorial-box">
+            <p>⚪ 白丸「シュッ！」 → <b>2拍後</b></p>
+            <p><span class="highlight-red">🔺 赤三角「ピピ！」</span> → <b>1拍後</b></p>
+            <p><span class="highlight-purple">💊 長カプセル「ながーく！」</span> → <b>押しっぱなし＆離す！</b></p>
+            <p><span class="highlight-orange">💥 ギザギザ「ダダダッ！」</span> → <b>通り過ぎるまで連打！</b></p>
+            <p><span class="highlight-gray">💨 フェイント「ウソッ」</span> → <b>途中で消える！叩いたらミス！</b></p>
+            <p style="text-align: center; margin-top:10px; color:#E74C3C;">※必ず音を出して遊んでね</p>
+        </div>
+
+        <div class="btn-container">
+            <div class="btn easy" onclick="startGame('EASY')">EASY</div>
+            <div class="btn normal" onclick="startGame('NORMAL')">NORMAL</div>
+            <div class="btn hard" onclick="startGame('HARD')">HARD</div>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="screen center-screen">
+        <h1 class="title-logo">GAME OVER</h1>
+        
+        <div class="rank-box">
+            評価
+            <span id="final-rank-val">平凡 (Bランク)</span>
+        </div>
+        
+        <div class="result-container">
+            <div class="result-text">難易度<span id="final-diff" class="result-val"></span></div>
+            <div class="result-text">最終スコア<span id="final-score" class="result-val">0</span></div>
+            <div class="result-text">最大BPM<span id="final-bpm" class="result-val">120</span></div>
+        </div>
+        
+        <div class="btn" onclick="backToTitle()">タイトルに戻る</div>
+    </div>
+
+    <div id="game-ui" class="screen">
+        <div class="ui-top">
+            <div class="ui-badge badge-score">SCORE <span id="scoreText">0</span></div>
+            <div class="ui-badge badge-combo">COMBO <span id="comboText">0</span></div>
+            <div class="ui-badge badge-bpm">BPM <span id="bpmText">120</span></div>
+        </div>
+        <div id="lives-container">
+            <!-- JSで動的生成 -->
+        </div>
+        <div id="turn-indicator">先生のお手本！</div>
+        <div id="fever-text">FEVER!!</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let audioCtx;
+        
+        const DIFFICULTIES = {
+            'EASY': { startBPM: 100, maxBPM: 140, bpmIncrease: 3, maxPattern: 3, lives: 5, name: "EASY" },
+            'NORMAL': { startBPM: 125, maxBPM: 180, bpmIncrease: 5, maxPattern: 8, lives: 4, name: "NORMAL" },
+            'HARD': { startBPM: 150, maxBPM: 240, bpmIncrease: 8, maxPattern: 11, lives: 3, name: "HARD" }
+        };
+        let currentDifficultyMode = null;
+        let maxLives = 4;
+        let lives = 4;
+        let currentBPM = 120; 
+        
+        let isPlaying = false;
+        let isGameOver = false;
+        let lastTime = 0;
+        let currentBeat = 0; 
+        let nextMetronomeBeatTime = 0;
+        let currentMetronomeBeat = 0;
+        
+        let score = 0;
+        let combo = 0;
+        let isFever = false;
+        let isDarkNight = false;
+        let cameraSpin = 0;
+        
+        let targets = [];
+        let particles = [];
+        let hitTexts = [];
+        let globalZoom = 1.0;
+        let cameraShake = 0;
+        
+        let player = { punchTime: 0, isPunching: false, isHolding: false, punchHit: false, damageTime: 0, isDamaged: false };
+        let teacher = { punchTime: 0, isPunching: false, isHolding: false, punchHit: false };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                const ut = new SpeechSynthesisUtterance(text);
+                ut.lang = 'ja-JP';
+                ut.rate = 1.8; 
+                ut.pitch = 1.5; 
+                ut.volume = 0.8;
+                speechSynthesis.speak(ut);
+            }
+        }
+
+        function playTick(time, isDownbeat) {
+            if(!isPlaying) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            
+            if (isFever) {
+                const bassOsc = audioCtx.createOscillator();
+                bassOsc.type = 'sawtooth';
+                bassOsc.frequency.setValueAtTime(isDownbeat ? 60 : 80, time);
+                bassOsc.frequency.exponentialRampToValueAtTime(10, time + 0.1);
+                const bassGain = audioCtx.createGain();
+                bassOsc.connect(bassGain); bassGain.connect(audioCtx.destination);
+                bassGain.gain.setValueAtTime(0.3, time);
+                bassGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+                bassOsc.start(time); bassOsc.stop(time + 0.1);
+            }
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(isDownbeat ? 800 : 600, time);
+            osc.frequency.exponentialRampToValueAtTime(10, time + 0.05);
+            gain.gain.setValueAtTime(isFever ? 0.2 : 0.1, time); 
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+            osc.start(time); osc.stop(time + 0.05);
+        }
+
+        function playCueSound(time, type='normal') {
+            if(!isPlaying) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            
+            if (type === 'hold') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, time);
+                osc.frequency.exponentialRampToValueAtTime(600, time + 0.4); 
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.3, time + 0.1);
+                gain.gain.linearRampToValueAtTime(0, time + 0.4);
+                osc.start(time); osc.stop(time + 0.4);
+            } else if (type === 'fast') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(1000, time);
+                osc.frequency.setValueAtTime(1200, time + 0.08); 
+                gain.gain.setValueAtTime(0.3, time);
+                gain.gain.setValueAtTime(0, time + 0.04); 
+                gain.gain.setValueAtTime(0.3, time + 0.08);
+                gain.gain.linearRampToValueAtTime(0, time + 0.15);
+                osc.start(time); osc.stop(time + 0.15);
+            } else if (type === 'mash') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(600, time);
+                osc.frequency.setValueAtTime(400, time + 0.1); 
+                gain.gain.setValueAtTime(0.4, time);
+                gain.gain.linearRampToValueAtTime(0, time + 0.2);
+                osc.start(time); osc.stop(time + 0.2);
+            } else if (type === 'feint') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, time);
+                osc.frequency.exponentialRampToValueAtTime(100, time + 0.2);
+                gain.gain.setValueAtTime(0.3, time);
+                gain.gain.linearRampToValueAtTime(0, time + 0.2);
+                osc.start(time); osc.stop(time + 0.2);
+            } else {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, time);
+                osc.frequency.linearRampToValueAtTime(800, time + 0.1);
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.5, time + 0.05);
+                gain.gain.linearRampToValueAtTime(0, time + 0.15);
+                osc.start(time); osc.stop(time + 0.15);
+            }
+        }
+
+        function playHitSound(time, isPerfect, isTeacher = false) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'square';
+            const baseFreq = isTeacher ? 1000 : 800;
+            const perfFreq = isTeacher ? 1400 : 1200;
+            osc.frequency.setValueAtTime(isPerfect ? perfFreq : baseFreq, time);
+            osc.frequency.exponentialRampToValueAtTime(100, time + 0.1);
+            gain.gain.setValueAtTime(isTeacher ? 0.3 : 0.5, time); 
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            osc.start(time); osc.stop(time + 0.1);
+        }
+
+        function playSwingSound(time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(200, time);
+            osc.frequency.linearRampToValueAtTime(100, time + 0.1);
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.linearRampToValueAtTime(0, time + 0.1);
+            osc.start(time); osc.stop(time + 0.1);
+        }
+
+        function playDamageSound(time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, time);
+            osc.frequency.linearRampToValueAtTime(50, time + 0.2);
+            gain.gain.setValueAtTime(0.4, time);
+            gain.gain.linearRampToValueAtTime(0, time + 0.2);
+            osc.start(time); osc.stop(time + 0.2);
+        }
+        
+        function playGameOverSound(time, isGood) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            
+            if (isGood) {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, time);
+                osc.frequency.setValueAtTime(600, time + 0.2);
+                osc.frequency.setValueAtTime(800, time + 0.4);
+                osc.frequency.setValueAtTime(1200, time + 0.6);
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.5, time + 0.1);
+                gain.gain.linearRampToValueAtTime(0, time + 1.5);
+                osc.start(time); osc.stop(time + 1.5);
+            } else {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, time);
+                osc.frequency.exponentialRampToValueAtTime(20, time + 1.0);
+                gain.gain.setValueAtTime(0.5, time);
+                gain.gain.linearRampToValueAtTime(0, time + 1.0);
+                osc.start(time); osc.stop(time + 1.0);
+            }
+        }
+
+        const PATTERNS = [
+            // EASY (0-2)
+            [{ hitOffset: 1, type: 'normal' }, { hitOffset: 2, type: 'normal' }, { hitOffset: 3, type: 'normal' }],
+            [{ hitOffset: 1, type: 'normal' }, { hitOffset: 3, type: 'normal' }],
+            [{ hitOffset: 1, type: 'hold', duration: 2 }],
+            // NORMAL (3-7)
+            [{ hitOffset: 1.5, type: 'normal' }, { hitOffset: 2.5, type: 'normal' }], 
+            [{ hitOffset: 1, type: 'normal' }, { hitOffset: 2.5, type: 'fast' }, { hitOffset: 3, type: 'fast' }],
+            [{ hitOffset: 1, type: 'hold', duration: 1.5 }, { hitOffset: 3, type: 'fast' }],
+            [{ hitOffset: 1, type: 'fast' }, { hitOffset: 1.5, type: 'fast' }, { hitOffset: 2, type: 'fast' }], 
+            [{ hitOffset: 1, type: 'hold', duration: 0.5 }, { hitOffset: 2.5, type: 'hold', duration: 0.5 }],
+            // HARD & SPECIAL (8-10)
+            [{ hitOffset: 1, type: 'mash', duration: 2 }], // 連打
+            [{ hitOffset: 1, type: 'feint' }, { hitOffset: 3, type: 'fast' }], // フェイントからの速攻
+            [{ hitOffset: 1, type: 'mash', duration: 1.5 }, { hitOffset: 3, type: 'feint' }] // 連打からのフェイント
+        ];
+
+        function generatePhrase(startBeat) {
+            const conf = currentDifficultyMode;
+            currentBPM = Math.min(conf.maxBPM, conf.startBPM + Math.floor(score / 300) * conf.bpmIncrease);
+            document.getElementById('bpmText').innerText = currentBPM;
+            
+            // お邪魔ギミック抽選 (BPM160以上)
+            if (currentBPM >= 160 && Math.random() < 0.2) {
+                isDarkNight = true;
+                document.getElementById('dark-filter').classList.add('active');
+                setTimeout(() => speak("めをとじて"), 500);
+            } else {
+                isDarkNight = false;
+                document.getElementById('dark-filter').classList.remove('active');
+            }
+            
+            // カメラスピン抽選 (BPM180以上)
+            if (currentBPM >= 180 && Math.random() < 0.3) {
+                cameraSpin = (Math.random() > 0.5 ? 1 : -1) * 0.15;
+                setTimeout(() => speak("まわるよ"), 500);
+            } else {
+                cameraSpin = 0;
+            }
+
+            const pIdx = Math.floor(Math.random() * conf.maxPattern);
+            const pattern = PATTERNS[pIdx];
+
+            let hasHold = pattern.some(p => p.type === 'hold');
+            let hasMash = pattern.some(p => p.type === 'mash');
+            let hasFeint = pattern.some(p => p.type === 'feint');
+            let hasTripleFast = pattern.filter(p => p.type === 'fast').length >= 3;
+            
+            if (hasHold) setTimeout(() => speak("ながーく！"), 100);
+            else if (hasMash) setTimeout(() => speak("ダダダダッ！"), 100);
+            else if (hasFeint) setTimeout(() => speak("ウソッ"), 100);
+            else if (hasTripleFast) setTimeout(() => speak("タタタ！"), 100);
+            else if (Math.random() < 0.2) setTimeout(() => speak("レディ？"), 100);
+
+            pattern.forEach(p => {
+                spawnTarget(startBeat + p.hitOffset, p.type, p.duration, 'teacher');
+            });
+            pattern.forEach(p => {
+                spawnTarget(startBeat + 4 + p.hitOffset, p.type, p.duration, 'player');
+            });
+        }
+
+        function spawnTarget(hitBeat, type, duration, owner) {
+            const beatsToTravel = (type === 'fast' || type === 'feint') ? 1 : 2; 
+            const spawnBeat = hitBeat - beatsToTravel;
+            
+            const beatDiff = spawnBeat - currentBeat;
+            const audioTime = audioCtx.currentTime + (beatDiff * (60.0 / currentBPM));
+            
+            playCueSound(audioTime, type);
+            
+            targets.push({ 
+                spawnBeat: spawnBeat, 
+                hitBeat: hitBeat, 
+                beatsToTravel: beatsToTravel,
+                type: type,
+                duration: duration || 0,
+                releaseBeat: hitBeat + (duration || 0),
+                owner: owner,
+                state: 'incoming', 
+                mashCount: 0,
+                yOffset: (Math.random() - 0.5) * 40 
+            });
+        }
+
+        function scheduleAudio() {
+            if (!isPlaying) return;
+
+            while (nextMetronomeBeatTime < audioCtx.currentTime + 0.1) {
+                playTick(nextMetronomeBeatTime, currentMetronomeBeat % 4 === 0);
+                
+                if (currentMetronomeBeat >= 4 && (currentMetronomeBeat - 4) % 8 === 0) {
+                    generatePhrase(currentMetronomeBeat + 4);
+                }
+                
+                nextMetronomeBeatTime += (60.0 / currentBPM);
+                currentMetronomeBeat++;
+            }
+            if (isPlaying) {
+                setTimeout(scheduleAudio, 25);
+            }
+        }
+
+        function setupHeartsUI() {
+            const container = document.getElementById('lives-container');
+            container.innerHTML = '';
+            for(let i=1; i<=maxLives; i++) {
+                const heart = document.createElement('span');
+                heart.className = 'heart';
+                heart.id = `heart-${i}`;
+                heart.innerText = '❤️';
+                container.appendChild(heart);
+            }
+        }
+
+        function loseLife() {
+            if (!isPlaying) return;
+            lives--;
+            updateHeartsUI();
+            if (lives <= 0) gameOver();
+        }
+        
+        function updateHeartsUI() {
+            for(let i=1; i<=maxLives; i++) {
+                const heart = document.getElementById(`heart-${i}`);
+                if (i > lives) {
+                    heart.classList.add('lost');
+                    heart.innerText = '💔';
+                } else {
+                    heart.classList.remove('lost');
+                    heart.innerText = '❤️';
+                }
+            }
+        }
+        
+        function getRank(score, bpm) {
+            if (bpm >= 200 && score > 6000) return { text: "パーフェクト!! (Sランク)", color: "#FFD24C", isGood: true, voice: "すばらしい！" };
+            if (bpm >= 160 && score > 3000) return { text: "ハイレベル！ (Aランク)", color: "#FF5151", isGood: true, voice: "いいね！" };
+            if (bpm >= 130 && score > 1000) return { text: "平凡 (Bランク)", color: "#4DB8FF", isGood: false, voice: "まあまあだね" };
+            return { text: "やりなおし… (Cランク)", color: "#aaa", isGood: false, voice: "もういっかい" };
+        }
+        
+        function gameOver() {
+            isPlaying = false;
+            isGameOver = true;
+            isFever = false;
+            isDarkNight = false;
+            document.body.classList.remove('fever');
+            document.getElementById('dark-filter').classList.remove('active');
+            
+            const rank = getRank(score, currentBPM);
+            
+            playGameOverSound(audioCtx.currentTime, rank.isGood);
+            setTimeout(() => speak(rank.voice), 1000);
+            
+            document.getElementById('final-diff').innerText = currentDifficultyMode.name;
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-bpm').innerText = currentBPM;
+            
+            const rankEl = document.getElementById('final-rank-val');
+            rankEl.innerText = rank.text;
+            rankEl.style.color = rank.color;
+            
+            setTimeout(() => {
+                document.getElementById('game-ui').classList.remove('active');
+                document.getElementById('game-over-screen').classList.add('active');
+            }, 1000);
+        }
+
+        function checkComboFever() {
+            if (combo >= 10 && !isFever) {
+                isFever = true;
+                document.body.classList.add('fever');
+                const feverEl = document.getElementById('fever-text');
+                feverEl.classList.add('active');
+                setTimeout(() => feverEl.classList.remove('active'), 1500);
+                speak("フィーバー！");
+            } else if (combo < 10 && isFever) {
+                isFever = false;
+                document.body.classList.remove('fever');
+            }
+        }
+
+        function backToTitle() {
+            document.getElementById('game-over-screen').classList.remove('active');
+            document.getElementById('title-screen').classList.add('active');
+        }
+
+        function startGame(diffName) {
+            createAudioContext();
+            
+            currentDifficultyMode = DIFFICULTIES[diffName];
+            maxLives = currentDifficultyMode.lives;
+            lives = maxLives;
+            currentBPM = currentDifficultyMode.startBPM;
+            
+            setupHeartsUI();
+
+            document.getElementById('title-screen').classList.remove('active');
+            document.getElementById('game-over-screen').classList.remove('active');
+            document.getElementById('game-ui').classList.add('active');
+            
+            isPlaying = true;
+            isGameOver = false;
+            isDarkNight = false;
+            cameraSpin = 0;
+            document.getElementById('dark-filter').classList.remove('active');
+            updateHeartsUI();
+            
+            lastTime = audioCtx.currentTime;
+            nextMetronomeBeatTime = lastTime + 0.1; 
+            currentBeat = 0;
+            currentMetronomeBeat = 0;
+            score = 0; 
+            combo = 0;
+            targets = [];
+            particles = [];
+            hitTexts = [];
+            
+            player.isDamaged = false;
+            player.isHolding = false;
+            teacher.isHolding = false;
+            
+            updateUI();
+            scheduleAudio();
+        }
+
+        function handlePointerDown(e) {
+            if(e.type === 'touchstart') e.preventDefault(); 
+            if (!isPlaying || isGameOver || player.isDamaged) return;
+
+            player.isPunching = true;
+            player.punchTime = audioCtx.currentTime;
+            player.punchHit = false;
+
+            let hitTarget = null;
+            let smackedFeint = false;
+            
+            for (let i = 0; i < targets.length; i++) {
+                if (targets[i].owner === 'player' && (targets[i].state === 'incoming' || targets[i].state === 'mashing')) {
+                    const diff = targets[i].hitBeat - currentBeat;
+                    
+                    // 連打ノーツの判定
+                    if (targets[i].type === 'mash' && currentBeat >= targets[i].hitBeat && currentBeat <= targets[i].releaseBeat) {
+                        targets[i].state = 'mashing';
+                        targets[i].mashCount++;
+                        playHitSound(audioCtx.currentTime, true, false);
+                        createHitParticles(targets[i], false, 'player');
+                        globalZoom = 1.02; cameraShake = 2;
+                        player.punchHit = true;
+                        hitTarget = targets[i];
+                        score += 10;
+                        break;
+                    }
+                    
+                    if (diff > -0.4 && diff < 0.4) {
+                        hitTarget = targets[i];
+                        
+                        if (hitTarget.type === 'feint') {
+                            // フェイントを叩いてしまった場合
+                            smackedFeint = true;
+                        } else if (hitTarget.type === 'hold') {
+                            hitTarget.state = 'holding';
+                            player.isHolding = true;
+                            playHitSound(audioCtx.currentTime, true, false);
+                            addHitText('長押し！', '#FF00FF', 'player');
+                        } else if (hitTarget.type !== 'mash') {
+                            if (Math.abs(diff) < 0.15) {
+                                hitTarget.state = 'hit_perfect';
+                                playHitSound(audioCtx.currentTime, true, false);
+                                score += 100 + (combo * 10);
+                                combo++;
+                                addHitText('ジャスト！', '#FFD24C', 'player');
+                                globalZoom = 1.05; cameraShake = 5;
+                            } else {
+                                hitTarget.state = 'hit_great';
+                                playHitSound(audioCtx.currentTime, false, false);
+                                score += 50 + (combo * 5);
+                                combo++;
+                                addHitText('OK', '#fff', 'player');
+                            }
+                            createHitParticles(hitTarget, false, 'player');
+                        }
+                        
+                        player.punchHit = true;
+                        break; 
+                    }
+                }
+            }
+            
+            if (smackedFeint) {
+                hitTarget.state = 'missed';
+                combo = 0;
+                addHitText('フェイント！', '#aaa', 'player');
+                loseLife();
+            } else if (!hitTarget) {
+                playSwingSound(audioCtx.currentTime);
+                combo = 0; 
+                addHitText('ミス！', '#aaa', 'player');
+                loseLife(); 
+            }
+            
+            checkComboFever();
+            updateUI();
+        }
+
+        function handlePointerUp(e) {
+            e.preventDefault();
+            if (!isPlaying || isGameOver || !player.isHolding) return;
+            player.isHolding = false;
+            player.isPunching = false; 
+
+            for (let i = 0; i < targets.length; i++) {
+                if (targets[i].owner === 'player' && targets[i].state === 'holding') {
+                    const diff = targets[i].releaseBeat - currentBeat;
+                    
+                    if (diff > -0.4 && diff < 0.4) {
+                        targets[i].state = 'hit_perfect';
+                        if (Math.abs(diff) < 0.15) {
+                            playHitSound(audioCtx.currentTime, true, false);
+                            score += 200 + (combo * 20); 
+                            combo++;
+                            addHitText('最高！', '#FF00FF', 'player');
+                            globalZoom = 1.1; cameraShake = 8;
+                        } else {
+                            playHitSound(audioCtx.currentTime, false, false);
+                            score += 100 + (combo * 10);
+                            combo++;
+                            addHitText('OK', '#fff', 'player');
+                        }
+                        createHitParticles(targets[i], false, 'player');
+                    } else {
+                        targets[i].state = 'missed'; 
+                        combo = 0;
+                        playSwingSound(audioCtx.currentTime);
+                        addHitText('失敗…', '#aaa', 'player');
+                        loseLife(); 
+                    }
+                    break;
+                }
+            }
+            checkComboFever();
+            updateUI();
+        }
+        
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mouseup', handlePointerUp);
+        canvas.addEventListener('mouseleave', handlePointerUp);
+        
+        canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+        canvas.addEventListener('touchend', handlePointerUp, { passive: false });
+        canvas.addEventListener('touchcancel', handlePointerUp, { passive: false });
+
+        function updateUI() {
+            document.getElementById('scoreText').innerText = score;
+            document.getElementById('bpmText').innerText = currentBPM;
+            document.getElementById('comboText').innerText = combo;
+            const ct = document.getElementById('comboText');
+            ct.style.display = 'inline-block';
+            ct.style.transform = 'scale(1.5)';
+            setTimeout(() => ct.style.transform = 'scale(1)', 100);
+        }
+
+        function addHitText(text, color, owner) {
+            hitTexts.push({ text: text, color: color, life: 1.0, yOffset: 0, owner: owner });
+        }
+
+        function createHitParticles(target, isDamage, owner) {
+            const baseX = owner === 'teacher' ? canvas.width * 0.75 : canvas.width * 0.25;
+            for(let i=0; i< (isDamage ? 8 : 20); i++) {
+                particles.push({
+                    x: baseX + (isDamage ? -20 : 100), 
+                    y: canvas.height / 2 + (isDamage ? 0 : target.yOffset),
+                    vx: (Math.random() - 0.5) * 20, 
+                    vy: (Math.random() - 1) * 15,
+                    size: Math.random() * 15 + 5,
+                    life: 1.0,
+                    color: isDamage ? '#333' : (i % 2 === 0 ? '#fff' : (target.type==='hold' ? '#FF00FF' : (target.type==='fast' ? '#FF5151' : (owner === 'teacher' ? '#FF5151' : '#4DB8FF'))))
+                });
+            }
+        }
+
+        function drawCharacter(x, y, currentBeat, isPunching, isHolding, punchHit, isDamaged, colorCode, isTeacher) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const beatPhase = currentBeat % 1.0;
+            const bounceY = Math.sin(beatPhase * Math.PI) * (isDamaged ? 2 : 15); 
+            ctx.translate(0, -bounceY);
+            
+            const isAura = currentBPM >= 150;
+            const isMacho = currentBPM >= 200;
+
+            if (isAura && !isDamaged) {
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = isFever ? '#FF00FF' : colorCode;
+            } else {
+                ctx.shadowBlur = 0;
+            }
+
+            // 体
+            ctx.fillStyle = isDamaged ? '#555' : (isDarkNight ? '#111' : colorCode);
+            ctx.strokeStyle = isFever ? '#00F3FF' : '#333';
+            ctx.lineWidth = 8;
+            ctx.lineJoin = 'round';
+            
+            if (isMacho && !isDamaged) {
+                ctx.beginPath();
+                ctx.moveTo(-60, -50); ctx.lineTo(60, -50);
+                ctx.lineTo(40, 50); ctx.lineTo(-40, 50);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+            } else {
+                ctx.fillRect(-50, -50, 100, 100);
+                ctx.strokeRect(-50, -50, 100, 100);
+            }
+
+            if (isDamaged) {
+                ctx.strokeStyle = '#333';
+                ctx.beginPath(); ctx.moveTo(-25, -25); ctx.lineTo(-10, -15); ctx.lineTo(-25, -5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(25, -25); ctx.lineTo(10, -15); ctx.lineTo(25, -5); ctx.stroke();
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(15, 15); ctx.lineTo(35, 35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(35, 15); ctx.lineTo(15, 35); ctx.stroke();
+            } else {
+                if (isFever) {
+                    ctx.fillStyle = '#111';
+                    ctx.beginPath(); ctx.moveTo(-40, -25); ctx.lineTo(0, -20); ctx.lineTo(40, -25); ctx.lineTo(30, -5); ctx.lineTo(-30, -5); ctx.fill();
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(-20, -20); ctx.lineTo(-10, -10); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(20, -20); ctx.lineTo(30, -10); ctx.stroke();
+                } else {
+                    ctx.fillStyle = isDarkNight ? '#fff' : '#333'; // 暗闇では目が光る
+                    ctx.beginPath();
+                    ctx.arc(-15, -20, 8, 0, Math.PI*2);
+                    ctx.arc(25, -20, 8, 0, Math.PI*2); 
+                    ctx.fill();
+                    if (isTeacher && !isDarkNight) {
+                        ctx.strokeStyle = '#333'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+                        ctx.beginPath(); ctx.moveTo(-25, -35); ctx.lineTo(-5, -25); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(15, -25); ctx.lineTo(35, -35); ctx.stroke();
+                    }
+                }
+
+                // 腕
+                ctx.strokeStyle = isFever ? '#00F3FF' : '#333';
+                ctx.lineCap = 'round';
+                ctx.lineWidth = isMacho ? 24 : 14; // ムキムキだと腕が太い
+                
+                if (isPunching || isHolding) {
+                    const punchExtend = (punchHit || isHolding) ? 110 : 80;
+                    ctx.beginPath(); ctx.moveTo(30, 10); ctx.lineTo(30 + punchExtend, 10);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = isFever ? '#FF00FF' : '#fff';
+                    ctx.lineWidth = 8;
+                    ctx.lineJoin = 'round';
+                    ctx.fillRect(30 + punchExtend - 10, -15, 40, 50);
+                    ctx.strokeRect(30 + punchExtend - 10, -15, 40, 50);
+                    
+                    if (!isFever) {
+                        ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(40, -10);
+                        ctx.lineWidth = 6; ctx.stroke();
+                    }
+                } else {
+                    ctx.beginPath(); ctx.moveTo(30, 10); ctx.lineTo(50, 30);
+                    ctx.stroke();
+                    
+                    if (!isFever) {
+                        ctx.beginPath(); ctx.moveTo(5, 10); ctx.lineTo(25, 10 + Math.sin(beatPhase * Math.PI * 2) * 8);
+                        ctx.lineWidth = 6; ctx.stroke();
+                    }
+                }
+            }
+            ctx.restore();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawTarget(x, y, t, currentX, punchHitX) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            if (t.state === 'incoming' || t.state === 'missed' || t.state === 'holding' || t.state === 'mashing') {
+                const color = t.type==='hold' ? '#9B59B6' : (t.type==='fast' ? '#FF5151' : (t.type==='mash' ? '#F39C12' : (t.type==='feint' ? '#7F8C8D' : '#fff')));
+                const strokeColor = isFever ? '#00F3FF' : '#333';
+                ctx.fillStyle = color; 
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = 8;
+                ctx.lineJoin = 'round';
+                
+                // フェイントは途中で消える
+                if (t.type === 'feint') {
+                    const distanceToHit = x - punchHitX;
+                    if (distanceToHit < 150) {
+                        ctx.globalAlpha = Math.max(0, distanceToHit / 150); // 徐々に透明に
+                    }
+                }
+
+                ctx.beginPath();
+                
+                if (t.type === 'hold') {
+                    let hLen = t.dynamicLength;
+                    ctx.arc(0, 0, 25, Math.PI/2, Math.PI*1.5);
+                    ctx.lineTo(hLen, -25);
+                    ctx.arc(hLen, 0, 25, Math.PI*1.5, Math.PI/2);
+                    ctx.closePath();
+                    ctx.fill(); ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(hLen, 0, 18, 0, Math.PI*2);
+                    ctx.fillStyle = '#fff'; ctx.fill();
+                    ctx.lineWidth = 4; ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(hLen - 8, -8); ctx.lineTo(hLen + 8, 8);
+                    ctx.moveTo(hLen + 8, -8); ctx.lineTo(hLen - 8, 8);
+                    ctx.stroke();
+                } else if (t.type === 'mash') {
+                    let hLen = t.dynamicLength;
+                    // ギザギザ
+                    ctx.moveTo(0, -30);
+                    for(let i=0; i<hLen; i+=20) {
+                        ctx.lineTo(i + 10, -30 + (i%40 === 0 ? 10 : 0));
+                    }
+                    ctx.lineTo(hLen, 0);
+                    for(let i=hLen; i>0; i-=20) {
+                        ctx.lineTo(i - 10, 30 - (i%40 === 0 ? 10 : 0));
+                    }
+                    ctx.closePath();
+                    ctx.fill(); ctx.stroke();
+                    
+                    // 中に連打アイコン
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '900 24px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('連打!', hLen/2, 10);
+                } else if (t.type === 'fast') {
+                    for(let i=0; i<3; i++) {
+                        const angle = (Math.PI * 2 / 3) * i - Math.PI/2;
+                        const px = Math.cos(angle) * 35;
+                        const py = Math.sin(angle) * 35;
+                        if(i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fill(); ctx.stroke();
+                } else {
+                    ctx.arc(0, 0, 35, 0, Math.PI*2);
+                    ctx.fill(); ctx.stroke();
+                    
+                    if (t.type === 'feint') {
+                        ctx.fillStyle = '#333';
+                        ctx.font = '900 30px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('?', 0, 10);
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(-15, -15); ctx.lineTo(15, 15);
+                        ctx.moveTo(15, -15); ctx.lineTo(-15, 15);
+                        ctx.lineWidth = 6;
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.restore();
+        }
+
+        function updateTurnIndicator(currentBeat) {
+            const indicator = document.getElementById('turn-indicator');
+            const phase = Math.floor(currentBeat / 4) % 2; 
+            
+            if (currentBeat < 4) {
+                indicator.style.opacity = 0;
+            } else {
+                indicator.style.opacity = 1;
+                if (phase === 1) { 
+                    indicator.innerText = "先生のお手本！ (Listen!)";
+                    indicator.style.color = "#FF5151";
+                } else { 
+                    indicator.innerText = "キミの番！ (Play!)";
+                    indicator.style.color = "#4DB8FF";
+                }
+            }
+        }
+
+        function drawLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (isPlaying && audioCtx) {
+                const now = audioCtx.currentTime;
+                const delta = now - lastTime;
+                currentBeat += delta / (60.0 / currentBPM);
+                lastTime = now;
+
+                updateTurnIndicator(currentBeat);
+
+                if (now - player.punchTime > 0.15 && !player.isHolding) player.isPunching = false;
+                if (player.isDamaged && now - player.damageTime > 0.5) player.isDamaged = false;
+                
+                if (now - teacher.punchTime > 0.15 && !teacher.isHolding) teacher.isPunching = false;
+
+                globalZoom += (1.0 - globalZoom) * 0.1;
+                if (cameraShake > 0) cameraShake -= 0.5;
+
+                ctx.save();
+                ctx.translate(canvas.width/2, canvas.height/2);
+                ctx.scale(globalZoom, globalZoom);
+                if (cameraSpin !== 0) ctx.rotate(cameraSpin * Math.sin(currentBeat * Math.PI));
+                if (cameraShake > 0) {
+                    ctx.translate((Math.random() - 0.5) * cameraShake, (Math.random() - 0.5) * cameraShake);
+                }
+                ctx.translate(-canvas.width/2, -canvas.height/2);
+
+
+                const lineOffset = (currentBeat % 1.0) * 100;
+                ctx.strokeStyle = isFever ? 'rgba(0, 243, 255, 0.3)' : (isDarkNight ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.6)');
+                ctx.lineWidth = 40;
+                for(let i=0; i<canvas.width*2; i+=150) {
+                    ctx.beginPath();
+                    ctx.moveTo(i - lineOffset, 0);
+                    ctx.lineTo(i - lineOffset - canvas.height, canvas.height);
+                    ctx.stroke();
+                }
+
+                const playerX = canvas.width * 0.25; 
+                const teacherX = canvas.width * 0.75; 
+                const playerY = canvas.height / 2;
+
+                for (let i = 0; i < targets.length; i++) {
+                    const t = targets[i];
+                    if (t.owner === 'teacher') {
+                        if (t.state === 'incoming' && currentBeat >= t.hitBeat) {
+                            if (t.type === 'hold' || t.type === 'mash') {
+                                t.state = (t.type === 'hold') ? 'holding' : 'mashing';
+                                teacher.isHolding = true;
+                                playHitSound(now, true, true);
+                            } else if (t.type !== 'feint') { // フェイントはお手本でもスルー
+                                t.state = 'hit_perfect';
+                                playHitSound(now, true, true);
+                                teacher.isPunching = true;
+                                teacher.punchTime = now;
+                                teacher.punchHit = true;
+                                createHitParticles(t, false, 'teacher');
+                            }
+                        } else if ((t.state === 'holding' || t.state === 'mashing') && currentBeat >= t.releaseBeat) {
+                            t.state = 'hit_perfect';
+                            teacher.isHolding = false;
+                            playHitSound(now, true, true);
+                            createHitParticles(t, false, 'teacher');
+                        }
+                    }
+                }
+
+                for (let i = targets.length - 1; i >= 0; i--) {
+                    const t = targets[i];
+                    
+                    const ownerX = (t.owner === 'teacher') ? teacherX : playerX;
+                    const punchHitX = ownerX + 110; 
+                    
+                    const startX = (t.owner === 'teacher') ? canvas.width + 100 : canvas.width * 0.5;
+                    const travelDistance = startX - punchHitX;
+                    
+                    t.dynamicLength = (t.type === 'hold' || t.type === 'mash') ? (t.duration / t.beatsToTravel) * travelDistance : 0;
+                    
+                    const progressBeats = currentBeat - t.spawnBeat; 
+                    const currentX = startX - (travelDistance * (progressBeats / t.beatsToTravel));
+                    const currentY = playerY + t.yOffset;
+
+                    if (t.state === 'holding' || t.state === 'mashing') {
+                        t.dynamicLength = (currentX + t.dynamicLength) - punchHitX;
+                        if (t.dynamicLength < 0) t.dynamicLength = 0;
+                    }
+
+                    // ダメージ処理 (フェイント以外)
+                    if (t.owner === 'player' && t.state === 'incoming' && currentX < playerX + 20 && t.type !== 'feint') {
+                        t.state = 'smacked';
+                        player.isDamaged = true;
+                        player.damageTime = now;
+                        playDamageSound(now);
+                        createHitParticles(t, true, 'player');
+                        combo = 0;
+                        checkComboFever();
+                        updateUI();
+                        globalZoom = 0.95; 
+                        cameraShake = 20;
+                        addHitText('ミス！', '#aaa', 'player');
+                        loseLife();
+                    }
+                    
+                    // 連打の終了判定
+                    if (t.owner === 'player' && t.state === 'mashing' && currentBeat >= t.releaseBeat) {
+                        t.state = 'hit_perfect';
+                        if (t.mashCount >= 3) { // 3回以上連打で成功
+                            score += 300; combo++;
+                            addHitText('猛連打！', '#F39C12', 'player');
+                            playHitSound(now, true, false);
+                        } else {
+                            combo = 0;
+                            addHitText('連打不足…', '#aaa', 'player');
+                            loseLife();
+                        }
+                    }
+
+                    if (t.state === 'incoming' || t.state === 'missed' || t.state === 'holding' || t.state === 'mashing') {
+                        const drawX = (t.state === 'holding' || t.state === 'mashing') ? punchHitX : currentX;
+                        drawTarget(drawX, currentY, t, currentX, punchHitX);
+                    }
+
+                    if (currentX + t.dynamicLength < -100 || t.state === 'smacked' || (t.state === 'missed' && currentX + t.dynamicLength < -100)) {
+                        targets.splice(i, 1);
+                    }
+                }
+
+                drawCharacter(playerX, playerY, currentBeat, player.isPunching, player.isHolding, player.punchHit, player.isDamaged, '#4DB8FF', false); 
+                drawCharacter(teacherX, playerY, currentBeat, teacher.isPunching, teacher.isHolding, teacher.punchHit, false, '#FF5151', true); 
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 0.03;
+                    ctx.fillStyle = p.color; ctx.strokeStyle = isFever ? '#00F3FF' : '#333'; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                    ctx.fill(); ctx.stroke();
+                    if (p.life <= 0) particles.splice(i, 1);
+                }
+
+                for (let i = hitTexts.length - 1; i >= 0; i--) {
+                    const ht = hitTexts[i];
+                    ht.yOffset -= 4; ht.life -= 0.04;
+                    const htX = (ht.owner === 'teacher') ? teacherX : playerX;
+                    
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, ht.life);
+                    ctx.translate(htX + 100, playerY - 100 + ht.yOffset);
+                    ctx.rotate(-0.1);
+                    ctx.font = '900 48px "M PLUS Rounded 1c", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.lineWidth = 10; ctx.strokeStyle = isFever ? '#fff' : '#333';
+                    ctx.strokeText(ht.text, 0, 0);
+                    ctx.fillStyle = ht.color; ctx.fillText(ht.text, 0, 0);
+                    ctx.restore();
+                    
+                    if (ht.life <= 0) hitTexts.splice(i, 1);
+                }
+                
+                ctx.restore(); 
+            }
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        requestAnimationFrame(drawLoop);
+
+    </script>
+</body>
+</html>

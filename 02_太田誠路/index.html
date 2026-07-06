@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>東方風弾幕シューティング ― ゲーム紹介</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#030308;
+    --nebula:#0d0d24;
+    --nebula-2:#12122e;
+    --cyan:#7ef9ff;
+    --sakura:#ff8fc7;
+    --violet:#b388ff;
+    --alert:#ff4d4d;
+    --moon:#f1f1ff;
+    --ash:#8c8caf;
+    --display: 'Zen Kaku Gothic New', sans-serif;
+    --card: 'Shippori Mincho', serif;
+    --body: 'Noto Sans JP', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--void);
+    color:var(--moon);
+    font-family:var(--body);
+    line-height:1.8;
+    overflow-x:hidden;
+  }
+  a{color:inherit;}
+
+  /* ---------- 汎用 ---------- */
+  .wrap{ max-width:1040px; margin:0 auto; padding:0 24px; }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.32em;
+    color:var(--cyan);
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:22px;height:1px;
+    background:var(--cyan);
+    box-shadow:0 0 6px var(--cyan);
+  }
+  section{ padding:120px 0; position:relative; }
+  h2{
+    font-family:var(--display);
+    font-weight:900;
+    font-size:clamp(28px,4vw,42px);
+    margin:18px 0 8px;
+    letter-spacing:.02em;
+  }
+  .lead{
+    color:var(--ash);
+    max-width:600px;
+    font-size:16px;
+  }
+
+  /* ---------- HERO ---------- */
+  #hero{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:80px 24px;
+    background:radial-gradient(circle at 50% 40%, #0d0d2c 0%, #030308 70%);
+  }
+  #bulletCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+    opacity:.85;
+    -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 0%, #000 45%, transparent 78%);
+            mask-image: radial-gradient(circle at 50% 42%, #000 0%, #000 45%, transparent 78%);
+  }
+  .hero-inner{ position:relative; z-index:2; }
+  .hero-cardlabel{
+    font-family:var(--card);
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:.5em;
+    color:var(--sakura);
+    text-shadow:0 0 10px rgba(255,143,199,.6);
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:var(--display);
+    font-weight:900;
+    font-size:clamp(34px, 7vw, 68px);
+    margin:0;
+    letter-spacing:.04em;
+    line-height:1.25;
+    background:linear-gradient(180deg, #ffffff 0%, var(--cyan) 55%, var(--sakura) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:0 0 40px rgba(126,249,255,.25);
+  }
+  .hero-tagline{
+    margin-top:22px;
+    color:var(--ash);
+    font-size:clamp(14px,2vw,17px);
+    max-width:480px;
+    margin-left:auto;margin-right:auto;
+  }
+  .hero-ctas{
+    margin-top:44px;
+    display:flex;
+    gap:16px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:.12em;
+    text-decoration:none;
+    padding:15px 30px;
+    border-radius:2px;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .btn-primary{
+    background:linear-gradient(90deg,#0af,#7ef9ff);
+    color:#001018;
+    font-weight:600;
+    box-shadow:0 0 24px rgba(126,249,255,.35);
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 4px 28px rgba(126,249,255,.55); }
+  .btn-ghost{
+    border:1px solid rgba(255,255,255,.25);
+    color:var(--moon);
+  }
+  .btn-ghost:hover{ border-color:var(--cyan); color:var(--cyan); }
+
+  .scrolldown{
+    position:absolute;
+    bottom:34px; left:50%;
+    transform:translateX(-50%);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.3em;
+    color:var(--ash);
+    z-index:2;
+  }
+  .scrolldown span{
+    display:block;
+    width:1px; height:34px;
+    margin:10px auto 0;
+    background:linear-gradient(var(--cyan), transparent);
+    animation:scrollpulse 1.8s ease-in-out infinite;
+  }
+  @keyframes scrollpulse{ 0%,100%{opacity:.2;} 50%{opacity:1;} }
+
+  /* ---------- CONCEPT ---------- */
+  #concept{
+    display:grid;
+    grid-template-columns:1.1fr .9fr;
+    gap:60px;
+    align-items:center;
+  }
+  #concept p{ color:#d6d6f2; font-size:15.5px; margin:14px 0; }
+  .concept-visual{
+    position:relative;
+    border:1px solid rgba(126,249,255,.18);
+    background:linear-gradient(160deg, var(--nebula), #050512);
+    border-radius:6px;
+    padding:26px;
+    box-shadow:0 0 50px rgba(126,249,255,.05) inset;
+  }
+  .mock-hud{
+    display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--cyan);
+    margin-bottom:18px; letter-spacing:.08em;
+  }
+  .mock-hud .r{ text-align:right; color:#fff; }
+  .mock-stage{
+    position:relative;
+    height:220px;
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:4px;
+    overflow:hidden;
+    background:radial-gradient(circle at 50% 20%, #10102a, #030308 70%);
+  }
+  .mock-ship{
+    position:absolute; left:50%; bottom:26px; transform:translateX(-50%);
+    width:0; height:0;
+    border-left:15px solid transparent;
+    border-right:15px solid transparent;
+    border-bottom:26px solid #0af;
+    filter:drop-shadow(0 0 8px #0af);
+  }
+  .mock-bomb-icon{ width:10px;height:10px; background:#3f3; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%); display:inline-block; box-shadow:0 0 6px #3f3;}
+  .mock-hp-icon{ width:10px;height:10px; border-radius:50%; background:#f33; display:inline-block; box-shadow:0 0 6px #f33; margin-right:3px;}
+
+  /* ---------- POINTS ---------- */
+  #points{ }
+  .points-head{ text-align:center; margin-bottom:64px; }
+  .points-head h2{ }
+  .points-head .lead{ margin:0 auto; text-align:center; }
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:2px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .card{
+    background:var(--void);
+    padding:34px 28px;
+    position:relative;
+    transition:background .2s ease;
+  }
+  .card:hover{ background:#08081a; }
+  .card::before{
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--card-accent,var(--cyan)), transparent);
+    opacity:.7;
+  }
+  .card-num{
+    font-family:var(--card);
+    font-weight:800;
+    font-size:13px;
+    letter-spacing:.35em;
+    color:var(--card-accent,var(--cyan));
+    text-shadow:0 0 8px currentColor;
+  }
+  .card h3{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:19px;
+    margin:14px 0 10px;
+    letter-spacing:.02em;
+  }
+  .card p{
+    color:var(--ash);
+    font-size:14px;
+    margin:0;
+  }
+
+  /* ---------- CTA / FOOTER ---------- */
+  #cta{
+    text-align:center;
+    background:radial-gradient(circle at 50% 30%, #10102c 0%, #030308 75%);
+    border-top:1px solid rgba(255,255,255,.06);
+  }
+  #cta h2{ }
+  .cta-url{
+    margin-top:34px;
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--cyan);
+    word-break:break-all;
+  }
+  footer{
+    padding:36px 24px;
+    text-align:center;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.1em;
+    color:var(--ash);
+    border-top:1px solid rgba(255,255,255,.05);
+  }
+
+  @media (max-width:760px){
+    #concept{ grid-template-columns:1fr; }
+    section{ padding:80px 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    .scrolldown span{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<section id="hero">
+  <canvas id="bulletCanvas"></canvas>
+  <div class="hero-inner">
+    <div class="hero-cardlabel">SPELL CARD ―― 紹介</div>
+    <h1>東方風<br>弾幕シューティング</h1>
+    <p class="hero-tagline">避けて、かすめて、撃ち返す。三段階のスペルカードに挑む、ブラウザ完結の弾幕STG。</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="https://seijiota0826.github.io/html_game/" target="_blank" rel="noopener">今すぐプレイする ▶</a>
+      <a class="btn btn-ghost" href="#points">工夫ポイントを見る</a>
+    </div>
+  </div>
+  <div class="scrolldown">SCROLL<span></span></div>
+</section>
+
+<!-- ============ CONCEPT ============ -->
+<section id="concept" class="wrap">
+  <div>
+    <div class="eyebrow">Concept</div>
+    <h2>コンセプト</h2>
+    <p>東方Projectに代表される「弾幕系シューティング」の気持ちよさ ―― 画面を埋め尽くす弾の中に、確かに一本だけ通っている避け筋を見つける快感を、インストール不要・ブラウザだけで再現することを目指しました。</p>
+    <p>ウェーブごとに雑魚を掃討して力を蓄え、最後に立ちはだかるボスは3枚のスペルカードを持ちます。パターンはリング状の花吹雪、逆回転の二重螺旋、そして格子状の殲滅弾幕へと、避けるべき「形」そのものが進化していきます。</p>
+    <p>PCではキーボードと低速移動、スマートフォンではドラッグ操作と専用ボタンに対応し、同じ緊張感をどの画面でも味わえるよう設計しました。</p>
+  </div>
+  <div class="concept-visual">
+    <div class="mock-hud">
+      <span><span class="mock-hp-icon"></span><span class="mock-hp-icon"></span><span class="mock-hp-icon"></span> &nbsp; <span class="mock-bomb-icon"></span><span class="mock-bomb-icon"></span><span class="mock-bomb-icon"></span></span>
+      <span class="r">SCORE 128,400<br>WAVE 3</span>
+    </div>
+    <div class="mock-stage">
+      <div class="mock-ship"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ POINTS ============ -->
+<section id="points" class="wrap">
+  <div class="points-head">
+    <div class="eyebrow" style="justify-content:center;">Design &amp; Engineering</div>
+    <h2>工夫ポイント</h2>
+    <p class="lead">ボスの弾幕そのものを"スペルカード"に見立て、実装上の工夫も符ごとに整理しました。</p>
+  </div>
+  <div class="cards">
+    <div class="card" style="--card-accent:#7ef9ff;">
+      <div class="card-num">第壱符</div>
+      <h3>グレイズ判定システム</h3>
+      <p>自機の当たり判定より広い「グレイズ円」を用意し、弾をかすめるだけでスコアと演出が発生。避けの精度がそのまま得点に変わるリスクリワードを作りました。</p>
+    </div>
+    <div class="card" style="--card-accent:#ff8fc7;">
+      <div class="card-num">第弐符</div>
+      <h3>4段階パワーアップ</h3>
+      <p>アイテムでパワーを蓄積すると、自機の弾は単発 → 2Way → 5Way → オプション付きへと段階的に強化。見た目にも火力にも成長を実感できるよう調整しました。</p>
+    </div>
+    <div class="card" style="--card-accent:#b388ff;">
+      <div class="card-num">第参符</div>
+      <h3>三相ボス「未確認の脅威」</h3>
+      <p>桜吹雪のリング弾、逆回転二重螺旋、自機狙い予告線からの巨弾＋弾幕格子と、フェーズごとに三角関数の組み方を変えて全く別物の弾幕を実装しました。</p>
+    </div>
+    <div class="card" style="--card-accent:#ff4d4d;">
+      <div class="card-num">終符</div>
+      <h3>タッチ操作とHUD演出</h3>
+      <p>ドラッグ移動・低速／ボムボタンでモバイルに対応。ボム発動時の全画面フラッシュ、画面シェイク、スペルカード宣言カットインなど、原作を意識した演出を作り込んでいます。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section id="cta">
+  <div class="wrap">
+    <div class="eyebrow" style="justify-content:center;">Play Now</div>
+    <h2>ブラウザを開けば、そこは弾幕の中。</h2>
+    <p class="lead" style="margin:0 auto;text-align:center;">インストール不要。GitHub Pagesで今すぐプレイできます。</p>
+    <div class="hero-ctas" style="margin-top:36px;">
+      <a class="btn btn-primary" href="https://seijiota0826.github.io/html_game/" target="_blank" rel="noopener">GitHub Pagesでプレイ ▶</a>
+    </div>
+    <div class="cta-url">https://seijiota0826.github.io/html_game/</div>
+  </div>
+</section>
+
+<footer>東方風弾幕シューティング ― ゲーム紹介ページ</footer>
+
+<script>
+(function(){
+  const canvas = document.getElementById('bulletCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, dpr;
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = canvas.clientWidth; h = canvas.clientHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let t = 0;
+  const rings = 3;
+  const perRing = 16;
+  const colors = ['#7ef9ff', '#ff8fc7', '#b388ff'];
+
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    const cx = w/2, cy = h*0.42;
+
+    for(let r=0; r<rings; r++){
+      const dir = r % 2 === 0 ? 1 : -1;
+      const radius = 60 + r*54;
+      const speed = 0.12 + r*0.05;
+      ctx.fillStyle = colors[r];
+      for(let i=0; i<perRing; i++){
+        const angle = (Math.PI*2/perRing)*i + dir * t * speed;
+        const x = cx + Math.cos(angle)*radius;
+        const y = cy + Math.sin(angle)*radius*0.55;
+        const size = 2.2 + r*0.6;
+        ctx.globalAlpha = 0.75;
+        ctx.beginPath();
+        ctx.arc(x,y,size,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    if(!reduceMotion){
+      t += 1;
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+
+</body>
+</html>

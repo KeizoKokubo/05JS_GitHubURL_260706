@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝石集め脱出ゲーム | Gem Collect Escape</title>
+    <style>
+        /* CSS Variables for easy theme management */
+        :root {
+            --bg-color: #0b1121;
+            --glass-bg: rgba(20, 30, 50, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #00f0ff;
+            --accent-hover: #00c3ff;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(255, 0, 128, 0.08) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header / Hero Section */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding: 60px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative glowing orb behind title */
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 100px;
+            background: var(--accent-color);
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+        }
+
+        header p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Play Button */
+        .play-btn {
+            display: inline-block;
+            padding: 18px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #0b1121;
+            background: var(--accent-color);
+            text-decoration: none;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+        }
+
+        .play-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
+        }
+
+        /* Content Sections */
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .feature-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 240, 255, 0.3);
+        }
+
+        .feature-image {
+            width: 100%;
+            height: 250px;
+            background-color: #1a2235;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Styling for the actual images when added */
+        .feature-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .feature-card:hover .feature-image img {
+            transform: scale(1.05);
+        }
+
+        /* Placeholder text if image is missing */
+        .feature-image::after {
+            content: '画像がありません。\Aここに画像を保存してください。';
+            white-space: pre-wrap;
+            position: absolute;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 20px;
+            z-index: -1;
+        }
+
+        .feature-content {
+            padding: 25px;
+        }
+
+        .feature-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        .feature-content p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* Instructions Section */
+        .instructions {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 40px;
+        }
+
+        .instructions h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--accent-color);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .control-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .control-key {
+            display: inline-block;
+            background: #fff;
+            color: #000;
+            padding: 5px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 0 #ccc;
+            letter-spacing: 1px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .features {
+                grid-template-columns: 1fr;
+            }
+            header h1 {
+                font-size: 2.2rem;
+            }
+            .play-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <header>
+            <h1>宝石集め脱出ゲーム</h1>
+            <p>迫り来る敵から逃げ延び、すべての宝石を集めて脱出せよ！<br>ハラハラドキドキのステルスアクション迷路</p>
+            <!-- Here is the link to the GitHub Pages Game -->
+            <a href="https://kirakazato.github.io/GemCollectGame/" target="_blank" class="play-btn">今すぐブラウザで遊ぶ 🎮</a>
+        </header>
+
+        <!-- Features / Screenshots Section -->
+        <div class="features">
+            <!-- Feature 1: Enemy AI -->
+            <div class="feature-card">
+                <div class="feature-image">
+                    <img src="screenshot1.png" alt="赤い敵が追いかけてくる様子">
+                </div>
+                <div class="feature-content">
+                    <h3>迫り来る敵を回避しろ</h3>
+                    <p>迷路には視界を持つ敵が徘徊しています。見つかると猛スピードで追いかけてくるため、壁や草むらを利用して上手くやり過ごしましょう。</p>
+                </div>
+            </div>
+
+            <!-- Feature 2: Time Attack & Magnet -->
+            <div class="feature-card">
+                <div class="feature-image">
+                    <img src="screenshot2.png" alt="マグネットスキルとタイムアタック">
+                </div>
+                <div class="feature-content">
+                    <h3>最速タイムを目指せ</h3>
+                    <p>スキルを使って周囲の宝石を一気に吸い寄せることも可能！クリアタイムが記録されるので、最短ルートを見つけて自己ベストを更新しよう。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Section -->
+        <div class="instructions">
+            <h2>遊び方・操作方法</h2>
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px;">
+                PCでもスマートフォン（画面タップ＆スワイプ）でも遊べます。
+            </p>
+            
+            <div class="controls-grid">
+                <div class="control-item">
+                    <div class="control-key">W A S D</div>
+                    <div>または <strong>矢印キー</strong></div>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">プレイヤーの移動</p>
+                </div>
+                
+                <div class="control-item">
+                    <div class="control-key">Q キー</div>
+                    <div>または <strong>画面長押し</strong></div>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">マグネットスキル発動<br>(クールタイムあり)</p>
+                </div>
+                
+                <div class="control-item">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent-color); margin-bottom: 10px;">🍃 草むら</div>
+                    <div>(濃い緑のマス)</div>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">中に入ると敵に見つかりません。<br>追跡も振り切れます！</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2026 Gem Collect Escape Game. All rights reserved.</p>
+        </footer>
+    </div>
+
+</body>
+</html>

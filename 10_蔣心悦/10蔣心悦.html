@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Assignment Hub</title>
+    <style>
+        /* Modern and clean layout setup */
+        /* 现代且干净的布局设置 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Segoe UI Symbol", "Noto Sans JP", sans-serif;
+            background-color: #f6f8fa;
+            color: #24292f;
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Prevents scrollbars during dragging */
+            position: relative;
+        }
+
+        /* Container to define the center reference point */
+        /* 定义中央参考点的容器 */
+        .universe-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1px;
+            height: 1px;
+        }
+
+        /* Central Interactive Card (Main Hub) */
+        /* 中央交互卡片（主核心） */
+        .file-card {
+            background-color: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 12px;
+            padding: 24px;
+            width: 320px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 10; /* Keeps center card above others by default */
+        }
+
+        .file-icon {
+            font-size: 48px;
+            color: #0969da;
+            margin-bottom: 16px;
+        }
+
+        .file-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            word-break: break-all;
+        }
+
+        .file-meta {
+            font-size: 14px;
+            color: #57606a;
+            margin-bottom: 24px;
+        }
+
+        .action-btn {
+            background-color: #0969da;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .action-btn:hover {
+            background-color: #1a7f37;
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Outer Draggable Cards (Japanese Content) */
+        /* 外圈可拖拽卡片（日语内容） */
+        .outer-card {
+            background-color: #ffffff;
+            border: 1px solid #e1e4e8;
+            border-radius: 10px;
+            padding: 16px;
+            width: 240px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            position: absolute;
+            cursor: grab; /* Shows hand grab icon */
+            user-select: none; /* Prevents text selection while dragging */
+            transition: box-shadow 0.2s ease;
+            z-index: 5;
+        }
+
+        .outer-card:active {
+            cursor: grabbing;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            z-index: 11; /* Brings the currently dragged card to the top */
+        }
+
+        /* Positioning the 3 cards in a triangle layout around the center (Radius: 280px) */
+        /* 将3个卡片定位在围绕中央的三角形布局中（半径：280px） */
+        
+        /* Top Vertex (0 degrees / 12 o'clock) */
+        #card-top {
+            transform: translate(-50%, -300px);
+            border-top: 4px solid #dd7878;
+        }
+
+        /* Bottom Right Vertex (120 degrees / 4 o'clock) */
+        #card-right {
+            transform: translate(260px, 100px);
+            border-top: 4px solid #ea9d34;
+        }
+
+        /* Bottom Left Vertex (240 degrees / 8 o'clock) */
+        #card-left {
+            transform: translate(-500px, 100px);
+            border-top: 4px solid #7287fd;
+        }
+
+        /* Typography inside Japanese cards */
+        .outer-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 15px;
+            color: #24292f;
+        }
+
+        .outer-card p {
+            margin: 0;
+            font-size: 13px;
+            color: #57606a;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="universe-container">
+        
+        <div class="file-card">
+            <div class="file-icon">🎮</div>
+            <div class="file-name">JIANG's Web-Assignment</div>
+            <div class="file-meta">Just a piece of shit</div>
+            <button class="action-btn" id="redirectBtn">Click here to start this shit.</button>
+        </div>
+
+        <div class="outer-card" id="card-top">
+            <h3>📌 概要</h3>
+            <p>・ゲームタイトル：ネオンスライド</p>
+            <p>・ただの横スライド式落ちものパズル</p>
+            <p>  （Dropdom）</p>
+        </div>
+
+        <div class="outer-card" id="card-right">
+            <h3>💡 コンセプト</h3>
+            <p>見栄えよく、やり続けられるゲーム</p>
+        </div>
+
+        <div class="outer-card" id="card-left">
+            <h3>❓ 工夫点</h3>
+            <p>・適切なプロンプトの編集</p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Redirection Logic ---
+        const targetUrl = "https://xinyuejiang-2502111.github.io/Web-Assignment/";
+        document.getElementById('redirectBtn').addEventListener('click', function(event) {
+            if (event.button === 0) {
+                window.location.href = targetUrl;
+            }
+        });
+
+        // --- Multi-Card Smooth Dragging Logic ---
+        // --- 多卡片平滑拖拽逻辑 ---
+        const dragCards = document.querySelectorAll('.outer-card');
+        let activeCard = null;
+        let startX = 0, startY = 0;
+        let initialX = 0, initialY = 0;
+
+        dragCards.forEach(card => {
+            card.addEventListener('mousedown', dragStart);
+        });
+
+        function dragStart(e) {
+            // Only allow dragging with left click
+            if (e.button !== 0) return;
+            
+            activeCard = e.currentTarget;
+            
+            // Get current transform offsets (matrix representation)
+            // 获取当前的 transform 偏移量
+            const style = window.getComputedStyle(activeCard);
+            const matrix = new WebKitCSSMatrix(style.transform);
+            initialX = matrix.m41;
+            initialY = matrix.m42;
+
+            // Record initial mouse coordinates
+            startX = e.clientX;
+            startY = e.clientY;
+
+            // Register global mouse movements for responsiveness
+            document.addEventListener('mousemove', dragging);
+            document.addEventListener('mouseup', dragEnd);
+        }
+
+        function dragging(e) {
+            if (!activeCard) return;
+
+            // Calculate exact delta movement
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            // Update the card's transform position seamlessly
+            activeCard.style.transform = `translate(${initialX + deltaX}px, ${initialY + deltaY}px)`;
+        }
+
+        function dragEnd() {
+            if (!activeCard) return;
+            
+            // Unregister listeners when mouse is released
+            document.removeEventListener('mousemove', dragging);
+            document.removeEventListener('mouseup', dragEnd);
+            activeCard = null;
+        }
+    </script>
+</body>
+</html>

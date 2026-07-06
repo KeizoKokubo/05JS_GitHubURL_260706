@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRAVITY SHIFT - 重力反転サイバーランナー</title>
+    <!-- Tailwind CSS (リッチなデザインを瞬時に適用するスタイルシート) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons (ゲーム画面のアイコン表示用) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght=400;700;900&family=Rajdhani:wght=500;700&display=swap');
+        .font-gaming {
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .font-hud {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* ボタンやローディング時のネオン光沢エフェクト */
+        .neon-border {
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+        }
+        .neon-text-magenta {
+            text-shadow: 0 0 8px rgba(236, 72, 153, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-hidden font-gaming select-none">
+
+    <!-- ==========================================
+         ヘッダー（ゲームタイトル・ステータス表示）
+         ========================================== -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-br from-indigo-500 to-cyan-500 text-white p-2 rounded-xl shadow-lg shadow-indigo-500/30">
+                <i data-lucide="activity" class="w-6 h-6 animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 font-hud">GRAVITY_SHIFT</h1>
+                <p class="text-xs text-slate-400">重力駆動サイバーランナーアクション</p>
+            </div>
+        </div>
+        <div class="hidden md:flex items-center space-x-6 text-sm">
+            <div class="text-slate-400">
+                <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-white">SPACE</kbd> / <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-white">画面タップ</kbd> で重力反転 ｜ 
+                <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-white">SHIFT</kbd> / <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-white">ボタン</kbd> でスキル発動
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+         メインゲームエリア
+         ========================================== -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 relative">
+        
+        <div id="game-container" class="w-full max-w-4xl h-[480px] relative border border-slate-800 bg-slate-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            
+            <!-- ==========================================
+                 ゲーム中HUD (スコア・倍率・シールド)
+                 ========================================== -->
+            <div id="game-hud" class="absolute top-4 left-4 right-4 flex justify-between items-end z-10 pointer-events-none transition-all duration-300 opacity-0">
+                <!-- 左側：スコアとコンボ -->
+                <div class="flex items-center gap-4">
+                    <div class="bg-slate-900/90 border border-slate-700/50 p-3 rounded-xl backdrop-blur-md">
+                        <span class="text-slate-500 text-[10px] font-bold block font-hud">SCORE</span>
+                        <span id="hud-score" class="text-3xl font-black font-hud text-white">00000</span>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-700/50 p-3 rounded-xl backdrop-blur-md text-center min-w-[70px]">
+                        <span class="text-slate-500 text-[10px] font-bold block font-hud">MULTIPLIER</span>
+                        <span id="hud-multiplier" class="text-2xl font-black font-hud text-cyan-400">x1.0</span>
+                    </div>
+                </div>
+
+                <!-- 中央：モード表示と警告 -->
+                <div id="hud-warning" class="hidden text-red-500 font-black tracking-widest text-lg font-hud animate-bounce neon-text-magenta bg-black/40 px-4 py-2 rounded-xl border border-red-500/30">
+                    WARNING: SPEEDING UP!
+                </div>
+
+                <!-- 右側：ハイスコアとスキルゲージ -->
+                <div class="flex items-center gap-3">
+                    <!-- スキルゲージ -->
+                    <div class="bg-slate-900/90 border border-slate-700/50 p-2.5 rounded-xl backdrop-blur-md min-w-[120px]">
+                        <span class="text-slate-500 text-[9px] font-bold block font-hud">SKILL GAUGE</span>
+                        <div class="w-full bg-slate-800 h-2.5 rounded-full mt-1 overflow-hidden relative border border-slate-700">
+                            <!-- 1段階目のゲージ（シアン/マゼンタ/ゴールドのグラデーション） -->
+                            <div id="hud-skill-bar" class="bg-gradient-to-r from-cyan-500 via-purple-500 to-amber-500 h-full w-0 transition-all duration-100"></div>
+                            <!-- 2段階目へのしきい値ライン (100%) -->
+                            <div class="absolute top-0 bottom-0 left-1/2 w-[2px] bg-slate-950"></div>
+                        </div>
+                        <span id="hud-skill-text" class="text-[9px] font-bold text-slate-400 block mt-0.5 font-hud text-center">READY: 0%</span>
+                    </div>
+                    <!-- スキル発動ボタン -->
+                    <button id="hud-skill-btn" onclick="activateSkill()" class="pointer-events-auto bg-slate-900/90 border border-slate-700/50 hover:border-indigo-500 p-2 rounded-xl backdrop-blur-md text-slate-500 hover:text-indigo-400 transition-all duration-200 flex flex-col items-center justify-center min-w-[55px] disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        <span class="text-[8px] font-bold font-hud block mt-0.5">SHIFT</span>
+                    </button>
+                    <!-- ハイスコア -->
+                    <div class="bg-slate-900/90 border border-slate-700/50 p-2.5 rounded-xl backdrop-blur-md text-right">
+                        <span class="text-slate-500 text-[9px] font-bold block font-hud">HI-SCORE</span>
+                        <span id="hud-highscore" class="text-lg font-bold font-hud text-amber-400">00000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 1. モード選択＆メインメニュー
+                 ========================================== -->
+            <div id="menu-screen" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 md:p-12 z-20 overflow-y-auto">
+                <div class="text-center mb-6">
+                    <span class="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded-full text-xs font-bold tracking-widest uppercase font-hud mb-3 inline-block">SYSTEM: ONLINE</span>
+                    <h2 class="text-4xl md:text-5xl font-black text-white tracking-widest font-hud">GRAVITY_SHIFT</h2>
+                    <p class="text-slate-400 text-sm mt-1">障害物を避けてスキルゲージを溜め、無敵化（SHIFTキー）で駆け抜けろ！</p>
+                </div>
+
+                <!-- モードセレクトカード -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-8">
+                    <!-- モード1: CLASSIC -->
+                    <button onclick="selectMode('classic')" id="card-classic" class="mode-card group relative bg-slate-900 border-2 border-indigo-500/80 p-5 rounded-2xl text-left transition-all duration-300 hover:scale-102">
+                        <div class="text-indigo-400 mb-2"><i data-lucide="play" class="w-6 h-6"></i></div>
+                        <h3 class="text-lg font-bold font-hud text-white mb-1">CLASSIC (王道)</h3>
+                        <p class="text-xs text-slate-400">時間経過とともに加速する最も基本的なモード。リズムを掴んで最長生存を目指せ。</p>
+                        <div class="absolute top-3 right-3 text-[10px] text-indigo-400 font-hud font-bold">MODE_01</div>
+                    </button>
+
+                    <!-- モード2: DOUBLE THREAT -->
+                    <button onclick="selectMode('double')" id="card-double" class="mode-card group relative bg-slate-900/40 border border-slate-800 p-5 rounded-2xl text-left transition-all duration-300 hover:scale-102 hover:bg-slate-900">
+                        <div class="text-pink-500 mb-2"><i data-lucide="split" class="w-6 h-6"></i></div>
+                        <h3 class="text-lg font-bold font-hud text-white mb-1">DOUBLE (二択)</h3>
+                        <p class="text-xs text-slate-400">上下の道に「ほぼ同時」に障害物が出現。中空での重力再反転（フェイント）を極めろ。</p>
+                        <div class="absolute top-3 right-3 text-[10px] text-pink-500 font-hud font-bold">MODE_02</div>
+                    </button>
+
+                    <!-- モード3: CHAOS PULSE -->
+                    <button onclick="selectMode('chaos')" id="card-chaos" class="mode-card group relative bg-slate-900/40 border border-slate-800 p-5 rounded-2xl text-left transition-all duration-300 hover:scale-102 hover:bg-slate-900">
+                        <div class="text-amber-500 mb-2"><i data-lucide="flame" class="w-6 h-6"></i></div>
+                        <h3 class="text-lg font-bold font-hud text-white mb-1">PULSE (混沌)</h3>
+                        <p class="text-xs text-slate-400">テンポ良く脈打つように、スクロール速度が急加速と急減速を繰り返す高難易度。動体視力を試せ。</p>
+                        <div class="absolute top-3 right-3 text-[10px] text-amber-500 font-hud font-bold">MODE_03</div>
+                    </button>
+                </div>
+
+                <!-- スタートボタン -->
+                <button onclick="startGame()" class="relative group px-12 py-4 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white font-bold text-xl tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-200 font-hud">
+                    LAUNCH RUNNER
+                </button>
+            </div>
+
+            <!-- ==========================================
+                 2. リザルト画面
+                 ========================================== -->
+            <div id="result-screen" class="hidden absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 z-20">
+                <div class="text-center mb-6">
+                    <span class="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded-full text-xs font-bold tracking-widest uppercase font-hud mb-2 inline-block">CONNECTION LOST</span>
+                    <h2 class="text-4xl font-black text-white font-hud">RUN_TERMINATED</h2>
+                    <p class="text-slate-400 text-sm">システムが物理衝突を検知、シミュレーションを強制終了しました。</p>
+                </div>
+
+                <!-- スコアボード -->
+                <div class="grid grid-cols-2 gap-4 w-full max-w-md mb-8">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                        <span class="text-slate-500 text-xs font-bold block font-hud">FINAL SCORE</span>
+                        <span id="res-score" class="text-4xl font-black font-hud text-indigo-400">0</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                        <span class="text-slate-500 text-xs font-bold block font-hud">MAX MULTIPLIER</span>
+                        <span id="res-multiplier" class="text-4xl font-black font-hud text-cyan-400">x1.0</span>
+                    </div>
+                    <div class="col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                        <span class="text-slate-500 text-xs font-bold block font-hud">SURVIVED TIME</span>
+                        <span id="res-time" class="text-xl font-bold font-hud text-white">0.0s</span>
+                    </div>
+                </div>
+
+                <!-- 操作ボタン -->
+                <div class="flex gap-4 w-full max-w-md">
+                    <button onclick="showMenu()" class="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 font-hud text-sm">
+                        <i data-lucide="home" class="w-4 h-4"></i> MENU
+                    </button>
+                    <button onclick="startGame()" class="flex-1 py-3.5 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 font-hud text-sm">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> REBOOT
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 ゲーム画面（Canvas本体）
+                 ========================================== -->
+            <canvas id="game-canvas" class="w-full h-full block cursor-pointer"></canvas>
+        </div>
+
+    </main>
+
+    <!-- 簡易フッター -->
+    <footer class="bg-slate-900/60 border-t border-slate-800 p-3 text-center text-xs text-slate-500">
+        &copy; 2026 GRAVITY SHIFT PROJECT | Powered by Web Audio & Canvas APIs
+    </footer>
+
+    <!-- ==========================================
+         ゲームプログラム (JavaScript)
+         ========================================== -->
+    <script>
+        // Lucideアイコンを展開
+        lucide.createIcons();
+
+        /*
+         * ==========================================
+         * 1. サウンドシステム (Web Audio API)
+         * DXライブラリの PlaySoundMem() や Unityの AudioSource.PlayOneShot() のように
+         * リアルタイムに周波数を合成して効果音やBGMループを作ります。
+         * ==========================================
+         */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let bgmInterval = null;
+        let bgmStep = 0;
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const now = audioCtx.currentTime;
+            
+            if (type === 'shift') {
+                // 重力反転：キュインと上がるシンセ音
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } 
+            else if (type === 'crash') {
+                // クラッシュ（ゲームオーバー）：激しいノイズ交じりの爆発低音
+                // ノイズバッファ作成
+                const bufferSize = audioCtx.sampleRate * 0.4;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(400, now);
+                filter.frequency.linearRampToValueAtTime(10, now + 0.4);
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                noise.start(now);
+                noise.stop(now + 0.4);
+            }
+            else if (type === 'score') {
+                // スコア：透き通る金属音（コインを拾ったような音）
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now); // A5ノート
+                osc.frequency.setValueAtTime(1320, now + 0.05); // E6ノート
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+        }
+
+        // 簡易シンセによるサイバーBGMシーケンサー (ゲームの緊迫感を高めます)
+        function startBgm(tempo) {
+            stopBgm();
+            const intervalTime = 60000 / tempo / 2; // 8分音符の間隔
+            
+            // DXライブラリのループ再生と同じように、一定間隔で音を鳴らします
+            bgmInterval = setInterval(() => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sawtooth';
+
+                // サイバーパンクなベースライン譜面 (ループ)
+                const notes = [110, 110, 130, 110, 146, 110, 130, 165]; // A2, C3, D3, E3あたりのベースライン
+                const currentNote = notes[bgmStep % notes.length];
+                
+                osc.frequency.setValueAtTime(currentNote, now);
+                // フィルターで音を丸くして太いベースにする
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(300, now);
+                
+                osc.disconnect(gain);
+                osc.connect(filter);
+                filter.connect(gain);
+
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                osc.start(now);
+                osc.stop(now + 0.2);
+
+                bgmStep++;
+            }, intervalTime);
+        }
+
+        function stopBgm() {
+            if (bgmInterval) {
+                clearInterval(bgmInterval);
+                bgmInterval = null;
+            }
+        }
+
+
+        /*
+         * ==========================================
+         * 2. キャンバス・物理エンジンの設定
+         * ==========================================
+         */
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // キャンバスの内部解像度を固定（アスペクト比 16:9）
+        canvas.width = 960;
+        canvas.height = 480;
+
+        // ゲーム設計の基準線 (床と天井のY座標)
+        const floorLineY = 380;   // 下のコースの走る面
+        const ceilingLineY = 100; // 上のコースの走る面
+
+        let currentMode = 'classic'; // 'classic' | 'double' | 'chaos'
+        let isPlaying = false;
+        let score = 0;
+        let highScore = localStorage.getItem('gs_highscore') || 0;
+        let baseSpeed = 6;      // スクロール速度
+        let activeSpeed = 6;    // 現在フレームのリアル速度（カオスモード用）
+        let gameTime = 0;       // ゲーム起動時間 (秒)
+        let comboMultiplier = 1.0; // スコア倍率 (連続で障害物を避けると上昇)
+        let framesSinceLastScore = 0;
+        let backgroundScrollOffset = 0;  // 背景スクロール位置（ピクセル）
+        let railMarkerOffset = 0;        // レールマーカースクロール位置
+        
+        // スキルシステム
+        let skillGauge = 0;     // スキルゲージ (0-200, 100で1段階, 200で2段階)
+        let skillLevel = 0;     // スキルレベル (0=なし, 1=シールド, 2=超加速)
+        let isShielded = false; // 無敵シールド中
+        let shieldTimer = 0;    // シールド継続フレーム
+        let isSuperSpeeding = false; // 超加速中
+        let superSpeedTimer = 0; // 超加速継続フレーム
+        let obstaclesAvoided = 0; // 避けたとげ数
+        let lastSpacePress = 0; // ダブルタップ検出用
+        let spacePressTiming = 0;
+
+        // 混沌（カオス）モード用ステート
+        let chaosState = 'normal'; // 'normal' | 'speedup' | 'slowdown' | 'lowgravity'
+        let chaosEventTimer = 0;   // 次のイベントまでのフレーム数
+        let chaosDurationTimer = 0;// 現在のイベントの残り持続フレーム数
+        let screenShake = 0;       // 画面の揺れ幅
+
+        // モード別の難易度設定
+        const difficultyConfig = {
+            classic: {
+                initialSpeed: 5,
+                acceleration: 0.0015,      // 基本加速度
+                accelerationThreshold: 8,  // この速度以上で加速速度UP
+                accelerationBoost: 0.003,
+                spawnBaseInterval: 70,
+                itemSpawnInterval: 200,
+                obstacleMinWidth: 26,
+                obstacleMaxWidth: 50,
+                obstacleMinHeight: 40,
+                obstacleMaxHeight: 70
+            },
+            double: {
+                initialSpeed: 5.5,
+                acceleration: 0.002,
+                accelerationThreshold: 9,
+                accelerationBoost: 0.004,
+                spawnBaseInterval: 80,
+                itemSpawnInterval: 180,
+                obstacleMinWidth: 30,
+                obstacleMaxWidth: 55,
+                obstacleMinHeight: 45,
+                obstacleMaxHeight: 85
+            },
+            chaos: {
+                initialSpeed: 6,
+                acceleration: 0.0025,
+                accelerationThreshold: 10,
+                accelerationBoost: 0.005,
+                spawnBaseInterval: 55,
+                itemSpawnInterval: 150,
+                obstacleMinWidth: 28,
+                obstacleMaxWidth: 58,
+                obstacleMinHeight: 42,
+                obstacleMaxHeight: 90
+            }
+        };
+
+        // ==========================================
+        // クラス定義 (Unityのコンポーネント、DXライブラリの構造体)
+        // ==========================================
+
+        // 1. プレイヤーオブジェクト（状態管理）
+        const player = {
+            x: 120,
+            y: floorLineY - 32,
+            width: 32,
+            height: 32,
+            vy: 0,
+            gravity: 0.7,      // 重力加速度
+            isUpsideDown: false, // 天井に張り付いているか
+            isGrounded: true,
+            trail: [],         // 残像エフェクト用の軌跡配列
+
+            // 物理演算の更新 (UnityのFixedUpdate相当)
+            update() {
+                // 重力反転状態に合わせて下か上かの重力を設定
+                const g = this.isUpsideDown ? -this.gravity : this.gravity;
+                this.vy += g;
+                this.y += this.vy;
+
+                // 残像データを記録 (最大10フレーム)
+                this.trail.push({ x: this.x, y: this.y, upside: this.isUpsideDown });
+                if (this.trail.length > 10) {
+                    this.trail.shift();
+                }
+
+                // 着地判定
+                if (!this.isUpsideDown) {
+                    // 下側の床に着地
+                    if (this.y + this.height >= floorLineY) {
+                        this.y = floorLineY - this.height;
+                        this.vy = 0;
+                        this.isGrounded = true;
+                    } else {
+                        this.isGrounded = false;
+                    }
+                } else {
+                    // 上側の天井に「逆さ着地」
+                    if (this.y <= ceilingLineY) {
+                        this.y = ceilingLineY;
+                        this.vy = 0;
+                        this.isGrounded = true;
+                    } else {
+                        this.isGrounded = false;
+                    }
+                }
+            },
+
+            // 重力の反転
+            flip() {
+                this.isUpsideDown = !this.isUpsideDown;
+                // 反転した瞬間に軽い跳躍力を加えることで、キビキビとした反応を生む
+                this.vy = this.isUpsideDown ? -5 : 5;
+                playSound('shift');
+            },
+
+            // 描画処理 (DXライブラリの DrawBox / UnityのMeshRenderer相当)
+            draw() {
+                // A. 残像(トレイル)の描画
+                this.trail.forEach((t, index) => {
+                    ctx.save();
+                    // 古い残像ほど透明にする
+                    ctx.globalAlpha = index / this.trail.length * 0.25;
+                    ctx.fillStyle = t.upside ? '#f43f5e' : '#6366f1';
+                    ctx.fillRect(t.x, t.y, this.width, this.height);
+                    ctx.restore();
+                });
+
+                // B. プレイヤー本体
+                ctx.save();
+                const mainColor = this.isUpsideDown ? '#f43f5e' : '#6366f1'; // 上ならマゼンタ、下ならインディゴ
+                ctx.fillStyle = mainColor;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = mainColor;
+                
+                // サイバー感あふれる角を少し落とした矩形
+                ctx.beginPath();
+                ctx.roundRect(this.x, this.y, this.width, this.height, 6);
+                ctx.fill();
+
+                // インジケーター（進行方向や重力向きを示す白いライン）
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowBlur = 0;
+                if (!this.isUpsideDown) {
+                    ctx.fillRect(this.x + 20, this.y + 6, 6, 6); // 右上に目
+                    ctx.fillRect(this.x + 6, this.y + 26, 20, 2); // 下部に接地ライン
+                } else {
+                    ctx.fillRect(this.x + 20, this.y + 20, 6, 6); // 右下に目
+                    ctx.fillRect(this.x + 6, this.y + 4, 20, 2);  // 上部に接地ライン
+                }
+                
+                // C. スキル関連ビジュアル
+                if (isShielded) {
+                    // シールド状態の表示：プレイヤーの周りに薄い青い円
+                    ctx.strokeStyle = `rgba(59, 130, 246, ${0.6 + 0.4 * Math.sin(gameTime * 10)})`;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.width / 2, this.y + this.height / 2, 45, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // パルス効果
+                    ctx.strokeStyle = `rgba(96, 165, 250, ${0.3 + 0.2 * Math.cos(gameTime * 15)})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.width / 2, this.y + this.height / 2, 52, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                if (isSuperSpeeding) {
+                    // 超加速状態：プレイヤーの周りにオレンジ色の高速フレア
+                    ctx.fillStyle = `rgba(251, 146, 60, ${0.4 + 0.2 * Math.sin(gameTime * 15)})`;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.arc(
+                            this.x + this.width / 2,
+                            this.y + this.height / 2,
+                            40 + i * 8,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.stroke();
+                    }
+                }
+                
+                ctx.restore();
+            }
+        };
+
+        // 2. 障害物 (Obstacle) クラス
+        class Obstacle {
+            constructor(spawnOnCeiling, offsetDelay = 0) {
+                const config = difficultyConfig[currentMode];
+                
+                // 難易度に応じてサイズを決定
+                this.width = config.obstacleMinWidth + Math.random() * (config.obstacleMaxWidth - config.obstacleMinWidth);
+                this.height = config.obstacleMinHeight + Math.random() * (config.obstacleMaxHeight - config.obstacleMinHeight);
+                
+                // 画面の少し右外側に出現
+                this.x = canvas.width + 60 + offsetDelay;
+                this.isCeiling = spawnOnCeiling;
+
+                if (this.isCeiling) {
+                    // 天井から下にぶら下がるトゲ
+                    this.y = ceilingLineY;
+                    this.type = 'ceiling';
+                } else {
+                    // 床から上に生える障害物
+                    this.y = floorLineY - this.height;
+                    this.type = 'floor';
+                }
+
+                this.passed = false;
+                this.color = this.isCeiling ? '#f43f5e' : '#06b6d4'; // 上は赤、下はシアンで視覚的判別をしやすく
+            }
+
+            // 更新 (Unityの Translate や、X座標から速度を引く処理)
+            update() {
+                this.x -= activeSpeed;
+            }
+
+            // 描画
+            draw() {
+                ctx.save();
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+
+                // 危険な「トゲ」「レーザーゲート」を想起させるシャープな描画
+                ctx.beginPath();
+                if (this.isCeiling) {
+                    // 下向きのトゲ
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x + this.width, this.y);
+                    ctx.lineTo(this.x + this.width / 2, this.y + this.height);
+                } else {
+                    // 上向きのトゲ
+                    ctx.moveTo(this.x, this.y + this.height);
+                    ctx.lineTo(this.x + this.width, this.y + this.height);
+                    ctx.lineTo(this.x + this.width / 2, this.y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // AABB(BoundingBox)当たり判定
+            checkCollision(p) {
+                // プレイヤーを少し細めに判定を甘く（ゲームとしての快適な手触りのため）
+                const shrinkX = 4;
+                const shrinkY = 2;
+                return (
+                    this.x < p.x + p.width - shrinkX &&
+                    this.x + this.width > p.x + shrinkX &&
+                    this.y < p.y + p.height - shrinkY &&
+                    this.y + this.height > p.y + shrinkY
+                );
+            }
+        }
+
+        // 3. 火花エフェクト (粒子) クラス
+        class Spark {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 6;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.radius = 1 + Math.random() * 2;
+                this.life = 1.0;
+                this.color = color;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.03; // 徐々に消える
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 4. アイテム (PowerUp) クラス
+        class Item {
+            constructor(x, y) {
+                this.x = x;
+                // Y位置を安全な範囲に限定（上下のレールから十分離す）
+                const midline = (ceilingLineY + floorLineY) / 2;
+                this.y = Math.max(ceilingLineY + 50, Math.min(floorLineY - 70, midline + (Math.random() - 0.5) * 100));
+                this.width = 20;
+                this.height = 20;
+                this.radius = 10;
+                this.collected = false;
+                this.bobAmount = 0; // ボブ（上下動）エフェクト用
+                this.rotationAngle = 0;
+            }
+
+            update() {
+                this.x -= activeSpeed;
+                this.rotationAngle += 0.1; // 回転アニメーション
+                this.bobAmount = Math.sin(gameTime * 5) * 3; // ゆっくり上下に揺らぐ
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = '#fbbf24'; // 黄金色
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#fbbf24';
+                
+                ctx.translate(this.x + this.radius, this.y + this.radius + this.bobAmount);
+                ctx.rotate(this.rotationAngle);
+                
+                // 星型に描画（5角星）
+                const points = 5;
+                const outerRadius = this.radius;
+                const innerRadius = this.radius * 0.4;
+                
+                ctx.beginPath();
+                for (let i = 0; i < points * 2; i++) {
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const angle = (i * Math.PI) / points - Math.PI / 2;
+                    const px = Math.cos(angle) * radius;
+                    const py = Math.sin(angle) * radius;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            checkCollision(p) {
+                const distance = Math.hypot(
+                    (this.x + this.radius) - (p.x + p.width / 2),
+                    (this.y + this.radius + this.bobAmount) - (p.y + p.height / 2)
+                );
+                return distance < this.radius + 16; // プレイヤーとの距離判定
+            }
+        }
+
+        // 5. 伸び縮みするギミック（Stretching Obstacle）
+        class StretchingObstacle extends Obstacle {
+            constructor(spawnOnCeiling, offsetDelay = 0) {
+                super(spawnOnCeiling, offsetDelay);
+                this.baseHeight = this.height;
+                this.stretchPhase = Math.random() * Math.PI * 2;
+                this.type = 'stretching';
+            }
+
+            update() {
+                super.update();
+                // サイン波で伸び縮み
+                this.height = this.baseHeight * (0.6 + Math.sin(gameTime * 0.08 + this.stretchPhase) * 0.4);
+                
+                // Y位置を調整
+                if (!this.isCeiling) {
+                    this.y = floorLineY - this.height;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = this.color;
+
+                // 伸び縮みするとげ：シンプルな三角形
+                ctx.beginPath();
+                if (this.isCeiling) {
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x + this.width, this.y);
+                    ctx.lineTo(this.x + this.width / 2, this.y + this.height);
+                } else {
+                    ctx.moveTo(this.x, this.y + this.height);
+                    ctx.lineTo(this.x + this.width, this.y + this.height);
+                    ctx.lineTo(this.x + this.width / 2, this.y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 6. 上下するギミック（Following Obstacle）
+        class FollowingObstacle extends Obstacle {
+            constructor(spawnOnCeiling, offsetDelay = 0) {
+                super(spawnOnCeiling, offsetDelay);
+                this.type = 'following';
+                this.vy = 0;
+                this.gravity = 0.5;
+                this.baseY = this.y;
+                this.movementRange = 80;
+                this.targetY = this.baseY;
+            }
+
+            update() {
+                super.update();
+                
+                // ランダムにターゲット位置を変更
+                if (Math.random() < 0.02) {
+                    this.targetY = this.baseY + (Math.random() - 0.5) * this.movementRange;
+                }
+                
+                // ターゲットに向かって移動
+                const diff = this.targetY - this.y;
+                this.vy += diff * 0.02 - this.vy * 0.1; // 簡易なバネ物理
+                this.y += this.vy;
+                
+                // 範囲制限
+                if (this.isCeiling) {
+                    this.y = Math.max(ceilingLineY, Math.min(ceilingLineY + this.movementRange, this.y));
+                } else {
+                    this.y = Math.max(floorLineY - this.height - this.movementRange, Math.min(floorLineY - this.height, this.y));
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = this.color;
+                
+                // プレイヤーのように目玉をつけた形状
+                ctx.beginPath();
+                if (this.isCeiling) {
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x + this.width, this.y);
+                    ctx.lineTo(this.x + this.width / 2 + 3, this.y + this.height);
+                    ctx.lineTo(this.x + this.width / 2 - 3, this.y + this.height);
+                } else {
+                    ctx.moveTo(this.x, this.y + this.height);
+                    ctx.lineTo(this.x + this.width, this.y + this.height);
+                    ctx.lineTo(this.x + this.width / 2 + 3, this.y);
+                    ctx.lineTo(this.x + this.width / 2 - 3, this.y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // 目玉エフェクト
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                if (this.isCeiling) {
+                    ctx.arc(this.x + 6, this.y + this.height - 4, 2, 0, Math.PI * 2);
+                } else {
+                    ctx.arc(this.x + 6, this.y + 4, 2, 0, Math.PI * 2);
+                }
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 9. ポータル（床のポータルから天井へテレポート）
+        class Portal {
+            constructor(isEntrance) {
+                this.x = canvas.width + 60;
+                this.width = 50;
+                this.height = 50;
+                this.radius = 25;
+                this.isEntrance = isEntrance; // true=入口(床), false=出口(天井)
+                
+                if (this.isEntrance) {
+                    // 入口：床の安全な位置
+                    this.y = floorLineY - 80;
+                } else {
+                    // 出口：天井の安全な位置
+                    this.y = ceilingLineY + 50;
+                }
+                
+                this.rotationAngle = 0;
+                this.used = false;
+            }
+
+            update() {
+                this.x -= activeSpeed;
+                this.rotationAngle += 0.12; // 光の回転
+            }
+
+            draw() {
+                ctx.save();
+                
+                // ワープホール本体：プラズマ色（ピンク/紫系）の光るゲート
+                const gradient = ctx.createRadialGradient(
+                    this.x + this.radius, this.y + this.radius, 5,
+                    this.x + this.radius, this.y + this.radius, this.radius
+                );
+                gradient.addColorStop(0, 'rgba(236, 72, 153, 0.9)');
+                gradient.addColorStop(0.5, 'rgba(168, 85, 247, 0.6)');
+                gradient.addColorStop(1, 'rgba(168, 85, 247, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = '#ec4899';
+                
+                ctx.translate(this.x + this.radius, this.y + this.radius);
+                ctx.rotate(this.rotationAngle);
+                
+                // ワープの渦巻き状エフェクト
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, (i + 1) * this.radius / 3, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(236, 72, 153, ${0.4 - i * 0.1})`;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                
+                // メイン円
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                // 内側の明るいコア
+                ctx.fillStyle = 'rgba(236, 72, 153, 0.7)';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * 0.6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            checkCollision(p) {
+                const distance = Math.hypot(
+                    (this.x + this.radius) - (p.x + p.width / 2),
+                    (this.y + this.radius) - (p.y + p.height / 2)
+                );
+                return distance < this.radius + 16;
+            }
+        }
+
+        // 管理用リスト
+        let obstacles = [];
+        let sparks = [];
+        let items = [];
+        let portals = [];
+        let spawnCooldown = 0;
+        let itemSpawnCooldown = 0;
+        let portalSpawnCooldown = 0;
+        let currentAmbiance = 'normal'; // 'normal' | 'power' (アイテム取得時)
+        let ambianceTimer = 0;  // 雰囲気切り替えのタイマー
+
+        /*
+         * ==========================================
+         * 3. UI遷移 & モード選択のロジック
+         * ==========================================
+         */
+        function selectMode(mode) {
+            currentMode = mode;
+            
+            // 一旦すべてのカードのハイライトを外す
+            document.querySelectorAll('.mode-card').forEach(card => {
+                card.classList.remove('border-indigo-500/80', 'border-pink-500/80', 'border-amber-500/80');
+                card.classList.add('border-slate-800');
+                card.classList.add('bg-slate-900/40');
+            });
+
+            // 選択したカードのみネオン色の枠線を付与
+            const activeCard = document.getElementById(`card-${mode}`);
+            activeCard.classList.remove('border-slate-800', 'bg-slate-900/40');
+            if (mode === 'classic') activeCard.classList.add('border-indigo-500/80');
+            if (mode === 'double') activeCard.classList.add('border-pink-500/80');
+            if (mode === 'chaos') activeCard.classList.add('border-amber-500/80');
+        }
+
+        // メニュー画面を表示
+        function showMenu() {
+            stopBgm();
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('game-hud').classList.add('opacity-0');
+            document.getElementById('menu-screen').classList.remove('hidden');
+        }
+
+        /*
+         * ==========================================
+         * 4. ゲームのスタート・ループ・オーバー
+         * ==========================================
+         */
+        function startGame() {
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            
+            // HUDをスッと表示
+            const hud = document.getElementById('game-hud');
+            hud.classList.remove('opacity-0');
+
+            // 変数の完全初期化
+            isPlaying = true;
+            score = 0;
+            gameTime = 0;
+            comboMultiplier = 1.0;
+            obstacles = [];
+            sparks = [];
+            items = [];
+            portals = [];
+            spawnCooldown = 0;
+            itemSpawnCooldown = 0;
+            portalSpawnCooldown = 0;
+            currentAmbiance = 'normal';
+            ambianceTimer = 0;
+            isSpacePressed = false;
+            backgroundScrollOffset = 0;
+            railMarkerOffset = 0;
+            framesSinceLastScore = 0;
+
+            // モード別の初期速度を設定
+            const config = difficultyConfig[currentMode];
+            baseSpeed = config.initialSpeed;
+            activeSpeed = config.initialSpeed;
+
+            player.y = floorLineY - player.height;
+            player.vy = 0;
+            player.isUpsideDown = false;
+            player.trail = [];
+            skillGauge = 0;
+            skillLevel = 0;
+            isShielded = false;
+            shieldTimer = 0;
+            isSuperSpeeding = false;
+            superSpeedTimer = 0;
+            obstaclesAvoided = 0;
+
+            // ハイスコア表示反映
+            document.getElementById('hud-highscore').innerText = String(highScore).padStart(5, '0');
+
+            // モードに応じたBGM（リズムテンポ）スタート
+            if (currentMode === 'chaos') {
+                startBgm(160); // 超ハイテンポ
+            } else if (currentMode === 'double') {
+                startBgm(130); // 中テンポ
+            } else {
+                startBgm(110); // 標準
+            }
+
+            // ゲームループ開始
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ゲームオーバー
+        function gameOver() {
+            isPlaying = false;
+            stopBgm();
+            playSound('crash');
+
+            // ハイスコアの保存
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('gs_highscore', highScore);
+            }
+
+            // 画面の表示切り替え
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('res-score').innerText = score;
+            document.getElementById('res-multiplier').innerText = `x${comboMultiplier.toFixed(1)}`;
+            document.getElementById('res-time').innerText = `${gameTime.toFixed(1)}s`;
+        }
+
+        // ==========================================
+        // 5. メインゲームループ (毎フレーム実行)
+        // ==========================================
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            // 時間経過の加算
+            gameTime += 1 / 60; // 60FPS想定
+
+            // A. 背景クリア＆サイバー風グリッド・道の描画
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+
+            // B. 背景スクロール値を累積（速度同期修正）
+            backgroundScrollOffset += activeSpeed * 2;
+            railMarkerOffset += activeSpeed * 60;
+
+            // C. カオス・パルスモード限定：スピードの動的変化（サイン波による周期的な加速減速）
+            if (currentMode === 'chaos') {
+                // サイン波を用いて速度を4〜12の間で揺らす
+                const pulse = Math.sin(gameTime * 3) * 4; // 周期的変化
+                activeSpeed = baseSpeed + pulse;
+                
+                // 危険値になったら画面に警告
+                const warningEl = document.getElementById('hud-warning');
+                if (activeSpeed > 9) {
+                    warningEl.classList.remove('hidden');
+                } else {
+                    warningEl.classList.add('hidden');
+                }
+            } else {
+                // 通常モード：モード別の加速度で段階的に速度UP
+                const config = difficultyConfig[currentMode];
+                
+                // 初期段階は低い加速度、ある程度以上の速度では高い加速度
+                if (baseSpeed < config.accelerationThreshold) {
+                    baseSpeed += config.acceleration;
+                } else {
+                    baseSpeed += config.accelerationBoost;
+                }
+                
+                activeSpeed = baseSpeed;
+                document.getElementById('hud-warning').classList.add('hidden');
+            }
+
+            // 超加速中の速度倍率適用（毎フレームの上書きを防ぐ）
+            if (isSuperSpeeding) {
+                activeSpeed = baseSpeed * 3;
+            }
+
+            // C. プレイヤーのアップデート
+            player.update();
+            player.draw();
+
+            // D. 障害物の生成ロジック
+            spawnCooldown--;
+            if (spawnCooldown <= 0) {
+                // 出現位置の近くにポータルがないかチェック
+                const tooCloseToPortal = portals.some(portal => Math.abs(portal.x - (canvas.width + 60)) < 200);
+                
+                if (!tooCloseToPortal) {
+                    const config = difficultyConfig[currentMode];
+                    
+                    // モード別のアルゴリズム分岐
+                    if (currentMode === 'double') {
+                        // 【DOUBLE THREAT モード】：上下に「ほぼ同時」に挟み撃ちのように配置
+                        const topFirst = Math.random() < 0.5;
+                        
+                        // ギミックの種類を決定（3種類：通常、伸び縮み、上下）
+                        const gimmickRand1 = Math.random();
+                        let obstacleClass1;
+                        if (gimmickRand1 < 0.4) {
+                            obstacleClass1 = Obstacle; // 通常のとげ（40%）
+                        } else if (gimmickRand1 < 0.7) {
+                            obstacleClass1 = StretchingObstacle; // 伸び縮みするとげ（30%）
+                        } else {
+                            obstacleClass1 = FollowingObstacle; // 上下するとげ（30%）
+                        }
+                        
+                        const gimmickRand2 = Math.random();
+                        let obstacleClass2;
+                        if (gimmickRand2 < 0.4) {
+                            obstacleClass2 = Obstacle; // 通常のとげ（40%）
+                        } else if (gimmickRand2 < 0.7) {
+                            obstacleClass2 = StretchingObstacle; // 伸び縮みするとげ（30%）
+                        } else {
+                            obstacleClass2 = FollowingObstacle; // 上下するとげ（30%）
+                        }
+                        
+                        obstacles.push(new obstacleClass1(topFirst));
+                        obstacles.push(new obstacleClass2(!topFirst, 120 + Math.random() * 80));
+                        
+                        spawnCooldown = config.spawnBaseInterval + Math.random() * 40;
+                    } else {
+                        // 【CLASSIC / CHAOS モード】：完全ランダムに出現
+                        const spawnCeiling = Math.random() < 0.5;
+                        
+                        // ギミックの種類をランダムに決定（3種類)
+                        const gimmickRand = Math.random();
+                        let ObstacleClass;
+                        // 通常のとげ、伸び縮みするとげ、上下するとげの3種類
+                        if (gimmickRand < 0.4) {
+                            ObstacleClass = Obstacle; // 通常のとげ（40%）
+                        } else if (gimmickRand < 0.7) {
+                            ObstacleClass = StretchingObstacle; // 伸び縮みするとげ（30%）
+                        } else {
+                            ObstacleClass = FollowingObstacle; // 上下するとげ（30%）
+                        }
+                        
+                        obstacles.push(new ObstacleClass(spawnCeiling));
+                        
+                        // スピードが速くなるとスポーンの頻度も上げてスリルを高める
+                        const speedFactor = Math.max(0, Math.floor((activeSpeed - config.initialSpeed) * 3));
+                        spawnCooldown = Math.max(30, config.spawnBaseInterval - speedFactor);
+                    }
+                } else {
+                    // ポータルが近くにある場合は生成を少し遅らせる
+                    spawnCooldown = 10;
+                }
+            }
+
+            // E. アイテムの生成ロジック
+            itemSpawnCooldown--;
+            if (itemSpawnCooldown <= 0) {
+                const config = difficultyConfig[currentMode];
+                items.push(new Item(canvas.width + 60, 0)); // Y座標はコンストラクタで自動計算
+                itemSpawnCooldown = config.itemSpawnInterval + Math.random() * 50;
+            }
+
+            // F. ポータルの生成ロジック（ペアで出現：入口と出口）
+            portalSpawnCooldown--;
+            if (portalSpawnCooldown <= 0) {
+                // 近くに障害物がないかチェック
+                const tooCloseToObstacle = obstacles.some(obs => Math.abs(obs.x - (canvas.width + 60)) < 200);
+                
+                if (!tooCloseToObstacle) {
+                    // 床のポータル（入口）と天井のポータル（出口）をペアで生成
+                    portals.push(new Portal(true));  // 入口（床）
+                    portals.push(new Portal(false)); // 出口（天井）
+                    portalSpawnCooldown = 400 + Math.random() * 150; // ポータルはレアな出現
+                } else {
+                    // 近くに障害物がある場合は生成を少し遅らせる
+                    portalSpawnCooldown = 10;
+                }
+            }
+
+            // E. 障害物のアップデート・当たり判定・スコア計算
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.update();
+                obs.draw();
+
+                // 物理衝突(Collider)判定
+                if (obs.checkCollision(player)) {
+                    if (isShielded) {
+                        // シールド状態なら無敵：当たり判定を無視
+                        // シアン色の火花でシールド効果を表示
+                        for (let s = 0; s < 12; s++) {
+                            sparks.push(new Spark(player.x + player.width / 2, player.y + player.height / 2, '#06b6d4'));
+                        }
+                    } else {
+                        // ぶつかった場所に派手な火花を出す
+                        for (let s = 0; s < 25; s++) {
+                            sparks.push(new Spark(player.x + player.width / 2, player.y + player.height / 2, '#ef4444'));
+                        }
+                        gameOver();
+                        return;
+                    }
+                } else {
+                    // 避けることに成功した場合
+                if (!obs.passed && obs.x + obs.width < player.x) {
+                    obs.passed = true;
+                    
+                    obstaclesAvoided++;
+                    
+                    // スキルゲージ管理（避けるごとに+10ゲージ）
+                    if (skillGauge < 200) {
+                        skillGauge += 10;
+                        if (skillGauge >= 200) {
+                            skillGauge = 200;
+                            skillLevel = 2; // 2段階ゲージ満タン
+                        } else if (skillGauge >= 100 && skillLevel < 1) {
+                            skillLevel = 1; // 1段階ゲージ満タン
+                        }
+                    }
+                    
+                    // コンボ倍率のロジック：連続で避けると倍率アップ、加算値が爆増
+                    comboMultiplier += 0.1;
+                    const addScore = Math.floor(10 * comboMultiplier);
+                    score += addScore;
+                    
+                    // スキル発動中（超加速中、無敵シールド中）はスコアは反映されるが速度は反映しない
+                    if (!isSuperSpeeding && !isShielded) {
+                        // 通常時は加速度を適用
+                        const config = difficultyConfig[currentMode];
+                        if (activeSpeed < config.accelerationThreshold) {
+                            activeSpeed += config.acceleration;
+                        } else {
+                            activeSpeed += config.accelerationBoost;
+                        }
+                    }
+
+                    // HUDの数値を更新
+                    document.getElementById('hud-score').innerText = String(score).padStart(5, '0');
+                    document.getElementById('hud-multiplier').innerText = `x${comboMultiplier.toFixed(1)}`;
+
+                    // スコア獲得の火花とサウンド
+                    playSound('score');
+                    for (let s = 0; s < 8; s++) {
+                        sparks.push(new Spark(obs.x + obs.width, obs.y + obs.height / 2, obs.color));
+                    }
+                }
+
+                // 画面外に去った障害物の配列削除（UnityのDestroyに相当、不要メモリ解放）
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+            // F. アイテムのアップデート・取得判定
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                item.update();
+                item.draw();
+
+                // プレイヤーがアイテムを取得
+                if (item.checkCollision(player)) {
+                    item.collected = true;
+                    
+                    // スコア大幅UP（×3倍ボーナス）
+                    const bonusScore = Math.floor(100 * comboMultiplier * 3);
+                    score += bonusScore;
+                    
+                    // コンボ倍率さらにUP
+                    comboMultiplier += 0.3;
+                    
+                    // HUD更新
+                    document.getElementById('hud-score').innerText = String(score).padStart(5, '0');
+                    document.getElementById('hud-multiplier').innerText = `x${comboMultiplier.toFixed(1)}`;
+
+                    // ゴールドの火花演出
+                    for (let s = 0; s < 20; s++) {
+                        sparks.push(new Spark(item.x, item.y, '#fbbf24'));
+                    }
+                    
+                    // アイテム獲得音（高い音）
+                    playSound('score');
+                    
+                    // マップの雰囲気を変更
+                    currentAmbiance = 'power';
+
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // 画面外に去ったアイテムの削除
+                if (item.x + item.width < 0) {
+                    items.splice(i, 1);
+                }
+            }
+
+            // G. パワーモードの時間管理
+            if (currentAmbiance === 'power') {
+                // パワーモードは5秒間継続
+                if (gameTime % 1 < 0.05) { // 毎秒チェック
+                    framesSinceLastScore++;
+                }
+            }
+
+            // G. ポータルのアップデート・テレポート判定
+            for (let i = portals.length - 1; i >= 0; i--) {
+                const portal = portals[i];
+                portal.update();
+                portal.draw();
+
+                // プレイヤーがポータルに接触
+                if (portal.isEntrance && portal.checkCollision(player) && !portal.used) {
+                    portal.used = true;
+                    
+                    // 対応する出口ポータルを見つける
+                    let exitPortal = null;
+                    for (let p of portals) {
+                        if (!p.isEntrance && Math.abs(p.x - portal.x) < 10) {
+                            exitPortal = p;
+                            break;
+                        }
+                    }
+                    
+                    if (exitPortal) {
+                        // テレポート：重力を維持したまま出口へ
+                        player.x = exitPortal.x + exitPortal.radius - player.width / 2;
+                        player.y = exitPortal.y - 30; // 少し上に出現
+                        
+                        // テレポート直後の無敵時間を付与（0.5秒＝30フレーム）
+                        isShielded = true;
+                        shieldTimer = Math.max(shieldTimer, 30);
+                        
+                        // シアン色の派手な火花
+                        for (let s = 0; s < 40; s++) {
+                            sparks.push(new Spark(player.x + player.width / 2, player.y + player.height / 2, '#06b6d4'));
+                        }
+                        
+                        // テレポート音
+                        playSound('shift');
+                    }
+                }
+
+                // 画面外に去ったポータル削除
+                if (portal.x + portal.width < 0) {
+                    portals.splice(i, 1);
+                }
+            }
+
+            // H. スキルシステムの時間管理
+            if (isShielded) {
+                shieldTimer--;
+                if (shieldTimer <= 0) {
+                    isShielded = false;
+                }
+            }
+            
+            if (isSuperSpeeding) {
+                superSpeedTimer--;
+                if (superSpeedTimer <= 0) {
+                    isSuperSpeeding = false;
+                    // 超加速終了時に速度を戻す
+                    activeSpeed = baseSpeed;
+                }
+            }
+
+            // G. 火花パーティクルの更新と描画
+            for (let i = sparks.length - 1; i >= 0; i--) {
+                const sp = sparks[i];
+                sp.update();
+                sp.draw();
+                if (sp.life <= 0) {
+                    sparks.splice(i, 1);
+                }
+            }
+
+            // I. 雰囲気の時間管理（パワーモード/ワープモード）
+            if (currentAmbiance !== 'normal') {
+                ambianceTimer++;
+                // 約5秒（300フレーム）で雰囲気を戻す
+                if (ambianceTimer > 300) {
+                    currentAmbiance = 'normal';
+                    ambianceTimer = 0;
+                }
+            }
+
+            // J. スキルゲージUIの更新
+            updateSkillUI();
+
+            // 次フレームも継続
+            requestAnimationFrame(gameLoop);
+        }
+
+        // サイバーパンク風の背景を描く関数 (Canvas API使用)
+        function drawBackground() {
+            ctx.save();
+            
+            // パワーモード中か判定
+            const isPowerMode = currentAmbiance === 'power';
+            
+            // 1. グラデーション背景
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            if (isPowerMode) {
+                // パワーモード：金色のグラデーション
+                grad.addColorStop(0, '#1f1d0d');
+                grad.addColorStop(0.5, '#2f2d1d'); 
+                grad.addColorStop(1, '#1f1d0d');
+            } else {
+                grad.addColorStop(0, '#020617'); // 深い紺
+                grad.addColorStop(0.5, '#0f172a'); 
+                grad.addColorStop(1, '#020617');
+            }
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. パワーモード時のエフェクト：フラッシュ
+            if (isPowerMode) {
+                ctx.fillStyle = `rgba(251, 191, 36, ${0.05 * Math.sin(gameTime * 10)})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // 3. 上下の「軌道レール（天井と床）」
+            ctx.lineWidth = 4;
+            
+            // 上レール (天井：マゼンタ・ピンク、パワーモードでは金色）
+            ctx.strokeStyle = isPowerMode ? '#fbbf24' : '#f43f5e';
+            ctx.shadowColor = ctx.strokeStyle;
+            ctx.shadowBlur = isPowerMode ? 15 : 10;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, ceilingLineY);
+            ctx.lineTo(canvas.width, ceilingLineY);
+            ctx.stroke();
+
+            // 下レール (床：シアン・ブルー、パワーモードでは金色)
+            ctx.strokeStyle = isPowerMode ? '#fbbf24' : '#6366f1';
+            ctx.shadowColor = ctx.strokeStyle;
+            ctx.beginPath();
+            ctx.moveTo(0, floorLineY);
+            ctx.lineTo(canvas.width, floorLineY);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        /*
+         * ==========================================
+         * 6. 入力インタラクション (マウス ＆ キーボード)
+         * ==========================================
+         */
+
+        // A. キーボード・マウス・タップによる重力反転 ＆ スキルシステム
+        
+        // スキル発動関数
+        function activateSkill() {
+            if (skillLevel === 0) return; // ゲージが溜まってない
+            
+            if (skillLevel === 1) {
+                // 1段階：シールド（無敵3秒）
+                isShielded = true;
+                shieldTimer = 180; // 3秒（60FPS想定）
+                skillGauge = 0;
+                skillLevel = 0;
+                playSound('shift');
+            } else if (skillLevel === 2) {
+                // 2段階：超加速+無敵（5秒）
+                isSuperSpeeding = true;
+                superSpeedTimer = 300; // 5秒
+                isShielded = true;
+                shieldTimer = 300;
+                // 速度を2倍に
+                activeSpeed = baseSpeed * 2;
+                skillGauge = 0;
+                skillLevel = 0;
+                playSound('shift');
+            }
+            // UIを即時反映
+            updateSkillUI();
+        }
+
+        // スキルゲージUIの更新
+        function updateSkillUI() {
+            const skillBar = document.getElementById('hud-skill-bar');
+            const skillText = document.getElementById('hud-skill-text');
+            const skillBtn = document.getElementById('hud-skill-btn');
+            
+            if (!skillBar || !skillText || !skillBtn) return;
+            
+            const percent = (skillGauge / 200) * 100;
+            skillBar.style.width = `${percent}%`;
+            
+            if (skillGauge >= 200) {
+                skillText.innerText = "MAX (Lv.2)";
+                skillText.className = "text-[9px] font-bold text-amber-400 block mt-0.5 font-hud text-center animate-pulse";
+                skillBtn.disabled = false;
+                skillBtn.classList.remove('text-slate-500', 'hover:text-indigo-400', 'border-slate-700/50');
+                skillBtn.classList.add('text-amber-400', 'border-amber-500/50', 'animate-pulse');
+            } else if (skillGauge >= 100) {
+                skillText.innerText = "READY (Lv.1)";
+                skillText.className = "text-[9px] font-bold text-cyan-400 block mt-0.5 font-hud text-center";
+                skillBtn.disabled = false;
+                skillBtn.classList.remove('text-slate-500', 'text-amber-400', 'border-amber-500/50', 'animate-pulse');
+                skillBtn.classList.add('text-cyan-400', 'border-cyan-500/50');
+            } else {
+                skillText.innerText = `CHARGE: ${Math.floor(percent * 2)}%`;
+                skillText.className = "text-[9px] font-bold text-slate-400 block mt-0.5 font-hud text-center";
+                skillBtn.disabled = true;
+                skillBtn.classList.remove('text-cyan-400', 'text-amber-400', 'border-cyan-500/50', 'border-amber-500/50', 'animate-pulse');
+                skillBtn.classList.add('text-slate-500', 'border-slate-700/50');
+            }
+        }
+        
+        // キーボード操作
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); // 画面スクロール防止
+
+                if (isPlaying) {
+                    // 重力反転
+                    player.flip();
+                } else if (document.getElementById('menu-screen').classList.contains('hidden')) {
+                    // ゲームオーバー画面なら、スペースキーで即座に再起動
+                    startGame();
+                }
+            } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                e.preventDefault();
+                if (isPlaying) {
+                    activateSkill();
+                }
+            }
+        });
+
+        // 画面クリック（タップ）による重力反転
+        canvas.addEventListener('mousedown', (e) => {
+            if (isPlaying) {
+                player.flip();
+            }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (isPlaying) {
+                e.preventDefault(); // タップによるズーム等のデフォルト動作防止
+                player.flip();
+            }
+        });
+    </script>
+</body>
+</html>

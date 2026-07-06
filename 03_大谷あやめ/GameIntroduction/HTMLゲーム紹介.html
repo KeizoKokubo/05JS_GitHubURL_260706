@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ミニゲーム作品集</title>
+
+<style>
+body{
+    margin:0;
+    font-family:"Yu Gothic", sans-serif;
+    background:#f7f7fb;
+    color:#444;
+}
+
+/* ヘッダー */
+header{
+    text-align:center;
+    padding:40px 20px;
+    background:#ffffff;
+    border-bottom:2px solid #f0f0f0;
+}
+
+header h1{
+    margin:0;
+    font-size:28px;
+    color:#ff6b9a;
+}
+
+header p{
+    margin-top:8px;
+    color:#888;
+}
+
+/* 全体 */
+.container{
+    max-width:900px;
+    margin:auto;
+    padding:25px;
+}
+
+/* カード */
+.game{
+    background:white;
+    border-radius:15px;
+    padding:20px;
+    margin-bottom:20px;
+    border:2px solid #f3f3f3;
+    box-shadow:0 3px 10px rgba(0,0,0,0.05);
+}
+
+/* タイトル */
+.game h2{
+    margin-top:0;
+    color:#ff6b9a;
+    font-size:20px;
+}
+
+/* 見出し */
+h3{
+    margin-bottom:5px;
+    color:#555;
+    font-size:15px;
+}
+
+/* ボタン */
+a.button{
+    display:inline-block;
+    margin-top:12px;
+    padding:10px 16px;
+    background:#ff6b9a;
+    color:white;
+    text-decoration:none;
+    border-radius:12px;
+    font-weight:bold;
+    font-size:14px;
+}
+
+a.button:hover{
+    background:#ff4f87;
+}
+
+/* URL */
+.url{
+    font-size:11px;
+    color:#aaa;
+    word-break:break-all;
+    margin-top:8px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🎮 ミニゲーム作品集</h1>
+    <p>HTMLとJavaScriptで作ったゲームまとめ</p>
+</header>
+
+<div class="container">
+
+<!-- 3D BOWLING -->
+<div class="game">
+<h2>🎳 3D BOWLING</h2>
+
+<img src="Bowling.png" width="100%">
+<h3>コンセプト</h3>
+<p>
+マウスでドラッグしてボールを投げるボウリングゲームです。<br>
+左右にスライドして角度を決めて、ホイールでカーブをつけることができます。<br>
+全部で10ゲームあります。
+</p>
+
+<h3>工夫したところ</h3>
+<p>
+・直感的に投げられる操作<br>
+・カーブで戦略性アップ<br>
+・10回遊べるシンプルなルール
+</p>
+
+<a class="button"
+href="file:///C:/Users/student/Desktop/HTML_Game/BowlingGame/index.html"
+target="_blank">
+ボウリングで遊ぶ
+</a>
+
+<p class="url">
+https://github.com/AyameOtani/JavaGame.git
+</p>
+</div>
+
+<!-- タイミングゲーム -->
+<div class="game">
+<h2>🎯 タイミングあわせゲーム</h2>
+
+<img src="Cclick.png" width="100%">
+<h3>コンセプト</h3>
+<p>
+動くバーをタイミングよく止めるゲームです。<br>
+赤い場所は30点、青い場所は10点です。
+</p>
+
+<h3>工夫したところ</h3>
+<p>
+・ステージごとにスピードが上がる<br>
+・シンプルでわかりやすい画面<br>
+・スコアで成長がわかる
+</p>
+
+<a class="button"
+href="file:///C:/Users/student/Desktop/HTML_Game/ClickGame/index.html"
+target="_blank">
+タイミングゲームで遊ぶ
+</a>
+
+<p class="url">
+https://github.com/AyameOtani/ClickGame.git
+</p>
+</div>
+
+<!-- NEON LINE -->
+<div class="game">
+<h2>🌈 NEON LINE</h2>
+
+<img src="Line.png" width="100%">
+<h3>コンセプト</h3>
+<p>
+カーソルで線をなぞってゴールまで進む一筆書きゲームです。
+</p>
+
+<h3>工夫したところ</h3>
+<p>
+・線から外れると最初からになる<br>
+・クリアしたステージがわかるようにした<br>
+・一筆書きのルールを再現
+</p>
+
+<a class="button"
+href="file:///C:/Users/student/Desktop/HTML_Game/DrawGame/index.html"
+target="_blank">
+NEON LINEで遊ぶ
+</a>
+
+<p class="url">
+https://github.com/AyameOtani/DrawGame.git
+</p>
+</div>
+
+</div>
+
+</body>
+</html>

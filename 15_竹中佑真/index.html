@@ -1,0 +1,1251 @@
+index.html
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サイバー・ビート・マジシャン - Cyber Beat Magician -</title>
+    <style>
+        /* ==================================================================
+           CSSによるスタイリング (サイバーパンク・ネオンデザイン)
+           ================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: #050510; /* 宇宙や深淵を思わせる超暗濃紺 */
+            color: #00ffff;
+            font-family: 'Courier New', Courier, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #ff007f; /* ネオンピンク */
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.6);
+            letter-spacing: 3px;
+            text-align: center;
+        }
+
+        /* メインコンテナ */
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.25);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 3px solid #00ffff;
+            background-color: #07071c;
+        }
+
+        canvas {
+            display: block;
+            background-color: #02020a;
+        }
+
+        /* 画面下部の操作説明・ステータス用UI */
+        #instructions {
+            margin-top: 15px;
+            color: #8fa0c5;
+            font-size: 13px;
+            text-align: center;
+            line-height: 1.6;
+            max-width: 600px;
+            background: rgba(10, 10, 30, 0.85);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #1f2d5a;
+        }
+
+        .highlight-pink {
+            color: #ff007f;
+            font-weight: bold;
+        }
+
+        .highlight-cyan {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .key {
+            background: #121b3a;
+            border: 1px solid #4d609f;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: monospace;
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 640px) {
+            #game-container {
+                width: 100vw;
+                height: calc(100vw * 1.25); /* 比率維持 */
+            }
+            canvas {
+                width: 100%;
+                height: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>CYBER BEAT MAGICIAN 🎧</h1>
+
+    <!-- ==================================================================
+       1. HTML基本構造の配置
+       ================================================================== -->
+    <div id="game-container">
+        <!-- 横幅 480px, 縦幅 600px のプレイ画面 (レーン4本分) -->
+        <canvas id="gameCanvas" width="480" height="600"></canvas>
+    </div>
+
+    <div id="instructions">
+        <p>【操作キー】 レーン左から順に <span class="key">D</span> ｜ <span class="key">F</span> ｜ <span class="key">J</span> ｜ <span class="key">K</span></p>
+        <p>上から流れてくるノーツ(光る球)が下部の判定ラインに重なる瞬間にキーを押します！</p>
+        <p><span class="highlight-pink">判定幅を広げ、HP回復も復活したため、最後まで楽しく演奏しやすくなっています。</span></p>
+        <p><span class="highlight-cyan">スマートフォン・タブレット</span>では、各レーンの下部を直接タップして遊べます！</p>
+    </div>
+
+    <!-- ==================================================================
+       JavaScriptによるゲームロジック・音源合成・描画ループ
+       ================================================================== -->
+    <script>
+        // ------------------------------------------------------------------
+        // [セクション 1] 変数・定数の定義
+        // ------------------------------------------------------------------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // シーン遷移用の状態定数
+        const SCENE = {
+            TITLE: 'TITLE',
+            SELECT: 'SELECT',
+            PLAY: 'PLAY',
+            RESULT: 'RESULT',
+            GAMEOVER: 'GAMEOVER'
+        };
+        let currentScene = SCENE.TITLE;
+
+        // キーボードのキーマップと、対応するレーンインデックス
+        const KEY_TO_LANE = {
+            'KeyD': 0,
+            'KeyF': 1,
+            'KeyJ': 2,
+            'KeyK': 3
+        };
+        const LANE_KEYS = ['D', 'F', 'J', 'K'];
+
+        // 4つのレーンのX座標や幅に関するレイアウト定数
+        const LANE_COUNT = 4;
+        const LANE_WIDTH = canvas.width / LANE_COUNT;
+        const JUDGE_LINE_Y = 500;       // 判定ラインのY座標
+        const NOTE_RADIUS = 18;         // ノーツの半径
+
+        // Web Audio API 関連のオブジェクト
+        let audioCtx = null;
+        let bgmStartTime = 0;           // BGMが鳴り始めた絶対時刻(秒)
+        let isBgmPlaying = false;
+        let lastScheduledBeat = -1;     // 前回のシンセ自動演奏時のビート番号
+
+        // ==========================================
+        // ★ ステージ定義データ (マイルドな3ステージにリチューン)
+        // ==========================================
+        const STAGES = [
+            {
+                name: "Cyber Genesis",
+                difficulty: "EASY",
+                color: "#00ffff",
+                bpm: 110,
+                scrollSpeed: 300,  // ゆったり見やすいスピード
+                length: 64,        // 16小節相当
+                chords: [45, 41, 48, 43], // Am - F - C - G
+                description: "ゆったりとした心地よいリズム。基本をおさらいしましょう。"
+            },
+            {
+                name: "Neon Overdrive",
+                difficulty: "NORMAL",
+                color: "#ffbe76",
+                bpm: 130,
+                scrollSpeed: 380,  // 標準的なスピード
+                length: 96,        // 24小節相当
+                chords: [41, 43, 45, 45], // F - G - Am - Am
+                description: "ノリのよいスピード感。裏拍のリズムに乗って叩こう！"
+            },
+            {
+                name: "Magical Singularity",
+                difficulty: "HARD",
+                color: "#ff007f",
+                bpm: 148,
+                scrollSpeed: 450,  // やりごたえのあるスピード
+                length: 128,       // 32小節相当
+                chords: [45, 48, 43, 41], // Am - C - G - F
+                description: "エキサイティングなトランスビート。同時押しに集中！"
+            }
+        ];
+        let currentStageIndex = 0; // 現在選択中のステージ
+
+        // BGM曲パラメーター
+        let bpm = 120;
+        let beatDuration = 60 / bpm; 
+        let songBeatLength = 128;   
+        let scrollSpeed = 350;
+
+        // 譜面（ノーツデータ）
+        let notesPattern = [];
+        let activeNotes = [];
+
+        // プレイ統計・スコア
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let results = { perfect: 0, great: 0, good: 0, miss: 0 };
+        let currentJudgeText = "";       // 判定ポップアップテキスト (Perfect, Great等)
+        let judgeTextTimer = 0;         // テキスト表示のタイマー
+
+        // HP (ライフシステム) の定義
+        let hp = 100;
+        const MAX_HP = 100;
+
+        // ビジュアルエフェクト用のオブジェクト
+        let lanePressStates = [false, false, false, false]; // 各レーンが今押されているか
+        let particles = [];             // 叩いた時の火花パーティクル
+        let lightFlares = [];           // 判定ラインのバックライト光エフェクト
+
+        // ------------------------------------------------------------------
+        // [セクション 2] 初期化処理 & イベントリスナー
+        // ------------------------------------------------------------------
+        function init() {
+            // キーボードイベントの登録
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+
+            // タッチ＆マウスクリックイベント
+            canvas.addEventListener('mousedown', handleCanvasClick);
+            canvas.addEventListener('touchstart', handleCanvasTouch, { passive: false });
+            canvas.addEventListener('touchend', handleCanvasTouchEnd, { passive: false });
+
+            // タイトル画面の初期化
+            currentScene = SCENE.TITLE;
+
+            // ゲームループの開始
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ------------------------------------------------------------------
+        // [セクション 3] BGM & 効果音リアルタイム合成システム (Web Audio API)
+        // ------------------------------------------------------------------
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playKick(time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, time);
+            osc.frequency.exponentialRampToValueAtTime(40, time + 0.12);
+
+            gain.gain.setValueAtTime(0.5, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+
+            osc.start(time);
+            osc.stop(time + 0.15);
+        }
+
+        function playHihat(time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(8000, time);
+
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(7000, time);
+
+            gain.gain.setValueAtTime(0.12, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+            osc.start(time);
+            osc.stop(time + 0.05);
+        }
+
+        function playBaseSynth(time, noteNum) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'sawtooth'; 
+            const freq = Math.pow(2, (noteNum - 69) / 12) * 440;
+            osc.frequency.setValueAtTime(freq, time);
+
+            gain.gain.setValueAtTime(0.18, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + beatDuration * 0.9);
+
+            osc.start(time);
+            osc.stop(time + beatDuration * 0.9);
+        }
+
+        function playMelodySynth(time, noteNum) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'square'; 
+            const freq = Math.pow(2, (noteNum - 69) / 12) * 440;
+            osc.frequency.setValueAtTime(freq, time);
+
+            gain.gain.setValueAtTime(0.08, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+            osc.start(time);
+            osc.stop(time + 0.15);
+        }
+
+        function playTapSound() {
+            if (!audioCtx) return;
+            const time = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, time);
+            osc.frequency.exponentialRampToValueAtTime(300, time + 0.06);
+
+            gain.gain.setValueAtTime(0.12, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+
+            osc.start(time);
+            osc.stop(time + 0.06);
+        }
+
+        function playCrashSound() {
+            if (!audioCtx) return;
+            const time = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, time);
+            osc.frequency.exponentialRampToValueAtTime(50, time + 0.8);
+
+            gain.gain.setValueAtTime(0.3, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.8);
+
+            osc.start(time);
+            osc.stop(time + 0.8);
+        }
+
+        // ------------------------------------------------------------------
+        // [BGM再生とシーケンサー・スケジューリング]
+        // ------------------------------------------------------------------
+        function scheduleMusic(currentBgmTime) {
+            const currentBeat = Math.floor(currentBgmTime / beatDuration);
+            const stage = STAGES[currentStageIndex];
+
+            if (currentBeat > lastScheduledBeat && currentBeat < songBeatLength) {
+                lastScheduledBeat = currentBeat;
+                const noteTime = bgmStartTime + currentBeat * beatDuration;
+
+                // 1. 常時4つ打ちドラム
+                if (currentBeat % 4 === 0 || currentBeat % 4 === 2) {
+                    playKick(noteTime);
+                }
+
+                // 2. 裏拍のハイハット
+                playHihat(noteTime + beatDuration * 0.5);
+
+                // 3. ベースライン (コード進行)
+                let chordIdx = Math.floor(currentBeat / 8) % 4;
+                let rootNote = stage.chords[chordIdx];
+                playBaseSynth(noteTime, rootNote);
+
+                // 4. メロディ
+                if (currentBeat % 2 === 0) {
+                    let melodyScale = [60, 62, 64, 67, 69, 72]; // Pentatonic C
+                    if (currentStageIndex === 2) {
+                        melodyScale = [57, 59, 60, 64, 65, 69]; // A Minor
+                    }
+                    let noteToPlay = melodyScale[Math.floor(Math.sin(currentBeat) * 3 + 3)];
+                    
+                    if (currentStageIndex === 2 && currentBeat % 4 === 2) {
+                        playMelodySynth(noteTime, noteToPlay + 12);
+                    } else {
+                        playMelodySynth(noteTime + beatDuration * 0.25, noteToPlay);
+                    }
+                }
+            }
+        }
+
+        function startBgm() {
+            bgmStartTime = audioCtx.currentTime + 0.5;
+            lastScheduledBeat = -1;
+            isBgmPlaying = true;
+        }
+
+        // ------------------------------------------------------------------
+        // [セクション 4] ゲームプレイデータの初期化 & 譜面生成
+        // ------------------------------------------------------------------
+        function generateSongChart() {
+            notesPattern = [];
+            
+            for (let beat = 4; beat < songBeatLength - 4; beat += 1) {
+                
+                // EASY: シンプルな偶数拍中心の配置
+                if (currentStageIndex === 0) {
+                    if (beat % 4 === 0 || (beat % 8 === 2)) {
+                        let lane = Math.floor(Math.sin(beat) * 1.5 + 1.5) % LANE_COUNT;
+                        notesPattern.push({
+                            beat: beat,
+                            time: beat * beatDuration,
+                            lane: lane,
+                            hit: false
+                        });
+                    }
+                }
+                
+                // NORMAL: 裏拍・付点配置、たまに高速変則連打
+                else if (currentStageIndex === 1) {
+                    if (beat % 2 === 0) {
+                        let lane = Math.floor(Math.sin(beat) * 2 + 2) % LANE_COUNT;
+                        notesPattern.push({
+                            beat: beat,
+                            time: beat * beatDuration,
+                            lane: lane,
+                            hit: false
+                        });
+                    }
+                    if (beat % 8 === 5) {
+                        let lane = (Math.floor(Math.cos(beat) * 2 + 2) + 1) % LANE_COUNT;
+                        notesPattern.push({
+                            beat: beat,
+                            time: beat * beatDuration,
+                            lane: lane,
+                            hit: false
+                        });
+                    }
+                }
+                
+                // HARD: 同時押し多発・ハーフビート連打
+                else if (currentStageIndex === 2) {
+                    if (beat % 2 === 0 || beat % 4 === 3) {
+                        let lane = Math.floor(Math.sin(beat * 1.2) * 2 + 2) % LANE_COUNT;
+                        notesPattern.push({
+                            beat: beat,
+                            time: beat * beatDuration,
+                            lane: lane,
+                            hit: false
+                        });
+                    }
+                    
+                    if (beat % 8 === 0) {
+                        let lane2 = (Math.floor(Math.sin(beat) * 2 + 2) + 2) % LANE_COUNT;
+                        notesPattern.push({
+                            beat: beat,
+                            time: beat * beatDuration,
+                            lane: lane2,
+                            hit: false
+                        });
+                    }
+                }
+            }
+
+            activeNotes = JSON.parse(JSON.stringify(notesPattern));
+        }
+
+        // プレイ開始時の初期化
+        function startNewGame() {
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            hp = MAX_HP; 
+            results = { perfect: 0, great: 0, good: 0, miss: 0 };
+            currentJudgeText = "";
+            judgeTextTimer = 0;
+            particles = [];
+            lightFlares = [];
+
+            // ステージ情報の適用
+            const stage = STAGES[currentStageIndex];
+            bpm = stage.bpm;
+            beatDuration = 60 / bpm;
+            songBeatLength = stage.length;
+            scrollSpeed = stage.scrollSpeed; // 各ステージのスクロールスピード
+
+            generateSongChart();
+            startBgm();
+
+            currentScene = SCENE.PLAY;
+        }
+
+        // ------------------------------------------------------------------
+        // [セクション 5] キー入力 ＆ タッチ操作時の判定ロジック
+        // ------------------------------------------------------------------
+        function handleKeyDown(e) {
+            if (currentScene === SCENE.TITLE) {
+                initAudio();
+                currentScene = SCENE.SELECT; // タイトルからステージ選択へ
+                return;
+            }
+            if (currentScene === SCENE.RESULT || currentScene === SCENE.GAMEOVER) {
+                currentScene = SCENE.SELECT; // ステージ選択へ戻る
+                return;
+            }
+
+            if (currentScene === SCENE.SELECT) {
+                if (e.code === 'KeyW' || e.code === 'ArrowUp') {
+                    currentStageIndex = (currentStageIndex - 1 + STAGES.length) % STAGES.length;
+                } else if (e.code === 'KeyS' || e.code === 'ArrowDown') {
+                    currentStageIndex = (currentStageIndex + 1) % STAGES.length;
+                } else if (e.code === 'Space' || e.code === 'Enter') {
+                    startNewGame();
+                }
+                e.preventDefault();
+                return;
+            }
+
+            if (e.code in KEY_TO_LANE) {
+                const laneIdx = KEY_TO_LANE[e.code];
+                
+                if (!lanePressStates[laneIdx]) {
+                    lanePressStates[laneIdx] = true;
+                    if (currentScene === SCENE.PLAY) {
+                        triggerTap(laneIdx);
+                    }
+                }
+                e.preventDefault();
+            }
+        }
+
+        function handleKeyUp(e) {
+            if (e.code in KEY_TO_LANE) {
+                const laneIdx = KEY_TO_LANE[e.code];
+                lanePressStates[laneIdx] = false;
+                e.preventDefault();
+            }
+        }
+
+        function handleCanvasClick(e) {
+            initAudio();
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            if (currentScene === SCENE.TITLE) {
+                currentScene = SCENE.SELECT;
+                return;
+            } 
+            
+            if (currentScene === SCENE.SELECT) {
+                for (let i = 0; i < STAGES.length; i++) {
+                    const btnY = 190 + i * 90;
+                    if (clickX >= 40 && clickX <= 440 && clickY >= btnY && clickY <= btnY + 75) {
+                        currentStageIndex = i;
+                        startNewGame();
+                        return;
+                    }
+                }
+                if (clickX >= 140 && clickX <= 340 && clickY >= 480 && clickY <= 530) {
+                    currentScene = SCENE.TITLE;
+                    return;
+                }
+            }
+
+            if (currentScene === SCENE.RESULT || currentScene === SCENE.GAMEOVER) {
+                currentScene = SCENE.SELECT;
+            }
+        }
+
+        function handleCanvasTouch(e) {
+            e.preventDefault();
+            initAudio();
+
+            const rect = canvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            const touchY = e.touches[0].clientY - rect.top;
+
+            if (currentScene === SCENE.TITLE) {
+                currentScene = SCENE.SELECT;
+                return;
+            }
+
+            if (currentScene === SCENE.SELECT) {
+                for (let i = 0; i < STAGES.length; i++) {
+                    const btnY = 190 + i * 90;
+                    if (touchX >= 40 && touchX <= 440 && touchY >= btnY && touchY <= btnY + 75) {
+                        currentStageIndex = i;
+                        startNewGame();
+                        return;
+                    }
+                }
+                if (touchX >= 140 && touchX <= 340 && touchY >= 480 && touchY <= 530) {
+                    currentScene = SCENE.TITLE;
+                    return;
+                }
+            }
+
+            if (currentScene === SCENE.RESULT || currentScene === SCENE.GAMEOVER) {
+                currentScene = SCENE.SELECT;
+                return;
+            }
+
+            // プレイ中のマルチタップ
+            for (let i = 0; i < e.touches.length; i++) {
+                const tx = e.touches[i].clientX - rect.left;
+                const ty = e.touches[i].clientY - rect.top;
+
+                if (ty > 200) {
+                    const laneIdx = Math.floor(tx / (rect.width / LANE_COUNT));
+                    if (laneIdx >= 0 && laneIdx < LANE_COUNT) {
+                        if (!lanePressStates[laneIdx]) {
+                            lanePressStates[laneIdx] = true;
+                            triggerTap(laneIdx);
+                        }
+                    }
+                }
+            }
+        }
+
+        function handleCanvasTouchEnd(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const currentPressed = [false, false, false, false];
+
+            for (let i = 0; i < e.touches.length; i++) {
+                const tx = e.touches[i].clientX - rect.left;
+                const ty = e.touches[i].clientY - rect.top;
+                if (ty > 200) {
+                    const laneIdx = Math.floor(tx / (rect.width / LANE_COUNT));
+                    if (laneIdx >= 0 && laneIdx < LANE_COUNT) {
+                        currentPressed[laneIdx] = true;
+                    }
+                }
+            }
+            lanePressStates = currentPressed;
+        }
+
+        // 判定・スコア計算・HP増減処理 (判定幅を元のマイルドな状態に戻し、HP回復を復活)
+        function triggerTap(laneIdx) {
+            playTapSound();
+
+            if (!isBgmPlaying) return;
+
+            const elapsedBgmTime = audioCtx.currentTime - bgmStartTime;
+            let targetNote = null;
+            let targetIdx = -1;
+
+            for (let i = 0; i < activeNotes.length; i++) {
+                const note = activeNotes[i];
+                if (note.lane === laneIdx && !note.hit) {
+                    targetNote = note;
+                    targetIdx = i;
+                    break;
+                }
+            }
+
+            if (targetNote) {
+                const diff = Math.abs(elapsedBgmTime - targetNote.time);
+
+                // 標準的で遊びやすい判定幅に差し戻し
+                const PERFECT_LIMIT = 0.045; // 45ms (叩きやすい)
+                const GREAT_LIMIT = 0.090;   // 90ms
+                const GOOD_LIMIT = 0.160;    // 160ms
+                const BAD_LIMIT = 0.250;     // 250ms
+
+                let isJudged = false;
+                let judgeText = "";
+
+                if (diff <= PERFECT_LIMIT) {
+                    judgeText = "PERFECT";
+                    score += 1000 + combo * 10;
+                    results.perfect++;
+                    combo++;
+                    isJudged = true;
+                } else if (diff <= GREAT_LIMIT) {
+                    judgeText = "GREAT";
+                    score += 700 + combo * 5;
+                    results.great++;
+                    combo++;
+                    isJudged = true;
+                } else if (diff <= GOOD_LIMIT) {
+                    judgeText = "GOOD";
+                    score += 400;
+                    results.good++;
+                    combo++;
+                    isJudged = true;
+                } else if (diff <= BAD_LIMIT) {
+                    judgeText = "MISS";
+                    results.miss++;
+                    combo = 0;
+                    hp -= 6; // 被ダメージ量をマイルドに緩和 (-15から-6へ)
+                    isJudged = true;
+                }
+
+                if (isJudged) {
+                    targetNote.hit = true;
+                    currentJudgeText = judgeText;
+                    judgeTextTimer = 40;
+
+                    if (combo > maxCombo) maxCombo = combo;
+
+                    if (judgeText !== "MISS") {
+                        createHitExplosion(laneIdx);
+                    }
+
+                    if (hp <= 0) {
+                        triggerGameOver();
+                    }
+                }
+            }
+        }
+
+        function triggerGameOver() {
+            hp = 0;
+            isBgmPlaying = false;
+            currentScene = SCENE.GAMEOVER;
+            playCrashSound();
+        }
+
+        // ------------------------------------------------------------------
+        // [セクション 6] 演出エフェクトの生成
+        // ------------------------------------------------------------------
+        function createHitExplosion(laneIdx) {
+            const spawnX = laneIdx * LANE_WIDTH + LANE_WIDTH / 2;
+            const spawnY = JUDGE_LINE_Y;
+
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: spawnX,
+                    y: spawnY,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8 - 2,
+                    size: Math.random() * 4 + 2,
+                    alpha: 1.0,
+                    color: laneIdx % 2 === 0 ? '#00ffff' : '#ff007f',
+                    decay: 0.04
+                });
+            }
+
+            lightFlares.push({
+                x: spawnX,
+                y: spawnY,
+                radius: 10,
+                maxRadius: 60,
+                alpha: 0.8,
+                color: laneIdx % 2 === 0 ? 'rgba(0, 255, 255, 0.4)' : 'rgba(255, 0, 127, 0.4)'
+            });
+        }
+
+        // ------------------------------------------------------------------
+        // [セクション 7] 更新処理 (Update)
+        // ------------------------------------------------------------------
+        function update(deltaTime) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            for (let i = lightFlares.length - 1; i >= 0; i--) {
+                const flare = lightFlares[i];
+                flare.radius += (flare.maxRadius - flare.radius) * 0.15;
+                flare.alpha -= 0.05;
+                if (flare.alpha <= 0) {
+                    lightFlares.splice(i, 1);
+                }
+            }
+
+            if (currentScene !== SCENE.PLAY) return;
+
+            const elapsedBgmTime = audioCtx.currentTime - bgmStartTime;
+
+            scheduleMusic(elapsedBgmTime);
+
+            // ノーツスルー時のMISS判定とHP減少処理 (スルーダメージも-20から-10に緩和)
+            for (let i = 0; i < activeNotes.length; i++) {
+                const note = activeNotes[i];
+                if (!note.hit && elapsedBgmTime - note.time > 0.35) { 
+                    note.hit = true;
+                    currentJudgeText = "MISS";
+                    judgeTextTimer = 40;
+                    combo = 0;
+                    results.miss++;
+                    hp -= 10; // スルーダメージを-10にマイルド化
+
+                    if (hp <= 0) {
+                        triggerGameOver();
+                        return;
+                    }
+                }
+            }
+
+            const isFinished = activeNotes.every(note => note.hit === true);
+            const isSongTimeOver = elapsedBgmTime > (songBeatLength + 2) * beatDuration;
+            
+            if (isFinished || isSongTimeOver) {
+                isBgmPlaying = false;
+                currentScene = SCENE.RESULT;
+            }
+
+            if (judgeTextTimer > 0) {
+                judgeTextTimer--;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // [セクション 8] 描画処理 (Draw)
+        // ------------------------------------------------------------------
+        function draw() {
+            ctx.fillStyle = 'rgba(5, 5, 16, 0.18)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawCyberGrid();
+            drawEffects();
+
+            switch (currentScene) {
+                case SCENE.TITLE:
+                    drawTitleScene();
+                    break;
+                case SCENE.SELECT:
+                    drawSelectScene();
+                    break;
+                case SCENE.PLAY:
+                    drawPlayScene();
+                    break;
+                case SCENE.RESULT:
+                    drawResultScene();
+                    break;
+                case SCENE.GAMEOVER:
+                    drawGameOverScene();
+                    break;
+            }
+        }
+
+        function drawCyberGrid() {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.04)';
+            ctx.lineWidth = 1;
+
+            for (let i = 1; i < LANE_COUNT; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * LANE_WIDTH, 0);
+                ctx.lineTo(i * LANE_WIDTH, canvas.height);
+                ctx.stroke();
+            }
+
+            const pulseSpeed = (Date.now() / 400) % 40;
+            for (let y = pulseSpeed; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawEffects() {
+            ctx.save();
+            lightFlares.forEach(f => {
+                ctx.fillStyle = f.color;
+                ctx.globalAlpha = f.alpha;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        // --- タイトル画面 ---
+        function drawTitleScene() {
+            ctx.textAlign = 'center';
+
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#00ffff';
+            ctx.font = 'bold 36px monospace';
+            ctx.fillText('CYBER BEAT', canvas.width / 2, 180);
+
+            ctx.shadowColor = '#ff007f';
+            ctx.fillStyle = '#ff007f';
+            ctx.fillText('MAGICIAN', canvas.width / 2, 230);
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#8fa0c5';
+            ctx.font = '14px monospace';
+            ctx.fillText('〜 Web Audio リアルタイムシンセ演奏 〜', canvas.width / 2, 290);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '15px monospace';
+            ctx.fillText('【PC】 キー D  F  J  K で対応判定', canvas.width / 2, 350);
+            ctx.fillText('【スマホ】 各レーンの下半分をタップ', canvas.width / 2, 380);
+
+            const blink = Math.sin(Date.now() / 200) * 0.4 + 0.6;
+            ctx.fillStyle = `rgba(0, 255, 255, ${blink})`;
+            ctx.font = 'bold 18px monospace';
+            ctx.fillText('画面クリック or キー入力で開始', canvas.width / 2, 470);
+        }
+
+        // --- ステージ選択画面 ---
+        function drawSelectScene() {
+            ctx.save();
+            ctx.textAlign = 'center';
+
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#00ffff';
+            ctx.font = 'bold 26px monospace';
+            ctx.fillText('SELECT STAGE', canvas.width / 2, 80);
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = '12px monospace';
+            ctx.fillText('PC: W / Sキーで選択、Space / Enterで決定', canvas.width / 2, 115);
+            ctx.fillText('スマホ: 希望のステージを直接タップ', canvas.width / 2, 135);
+
+            for (let i = 0; i < STAGES.length; i++) {
+                const stage = STAGES[i];
+                const isSelected = (i === currentStageIndex);
+                const btnX = 40;
+                const btnY = 190 + i * 90;
+                const btnW = 400;
+                const btnH = 75;
+
+                ctx.fillStyle = isSelected ? 'rgba(0, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.02)';
+                ctx.strokeStyle = isSelected ? stage.color : '#1f2d5a';
+                ctx.lineWidth = isSelected ? 3 : 1.5;
+                
+                if (isSelected) {
+                    ctx.shadowColor = stage.color;
+                    ctx.shadowBlur = 10;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.beginPath();
+                ctx.roundRect(btnX, btnY, btnW, btnH, 8);
+                ctx.fill();
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.textAlign = 'left';
+                ctx.fillStyle = stage.color;
+                ctx.font = 'bold 13px monospace';
+                ctx.fillText(`[${stage.difficulty}]`, btnX + 15, btnY + 28);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText(stage.name, btnX + 85, btnY + 28);
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                ctx.font = '11px sans-serif';
+                ctx.fillText(stage.description, btnX + 15, btnY + 54);
+
+                ctx.textAlign = 'right';
+                ctx.fillStyle = stage.color;
+                ctx.font = 'bold 13px monospace';
+                ctx.fillText(`BPM ${stage.bpm}`, btnX + btnW - 15, btnY + 28);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.font = '10px monospace';
+                ctx.fillText(`${stage.length} Beats`, btnX + btnW - 15, btnY + 54);
+            }
+
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = '#1f2d5a';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+            ctx.beginPath();
+            ctx.roundRect(140, 480, 200, 40, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#8fa0c5';
+            ctx.font = 'bold 13px monospace';
+            ctx.fillText('◀ TITLE BACK', canvas.width / 2, 505);
+
+            ctx.restore();
+        }
+
+        // --- ゲームプレイ中画面 ---
+        function drawPlayScene() {
+            const elapsedBgmTime = audioCtx.currentTime - bgmStartTime;
+            const stage = STAGES[currentStageIndex];
+
+            // 各レーンの描画
+            for (let i = 0; i < LANE_COUNT; i++) {
+                const laneX = i * LANE_WIDTH + LANE_WIDTH / 2;
+
+                if (lanePressStates[i]) {
+                    const grad = ctx.createLinearGradient(laneX, 0, laneX, canvas.height);
+                    grad.addColorStop(0, 'rgba(0, 255, 255, 0.0)');
+                    grad.addColorStop(0.8, i % 2 === 0 ? 'rgba(0, 255, 255, 0.12)' : 'rgba(255, 0, 127, 0.12)');
+                    grad.addColorStop(1, 'rgba(0, 255, 255, 0.0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(i * LANE_WIDTH, 0, LANE_WIDTH, canvas.height);
+                }
+
+                ctx.save();
+                ctx.strokeStyle = i % 2 === 0 ? '#00ffff' : '#ff007f';
+                ctx.lineWidth = lanePressStates[i] ? 4 : 2;
+                ctx.shadowColor = ctx.strokeStyle;
+                ctx.shadowBlur = lanePressStates[i] ? 15 : 4;
+                ctx.beginPath();
+                ctx.arc(laneX, JUDGE_LINE_Y, NOTE_RADIUS + 4, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.font = 'bold 12px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(LANE_KEYS[i], laneX, JUDGE_LINE_Y + 35);
+                ctx.restore();
+            }
+
+            // ノーツの描画
+            activeNotes.forEach(note => {
+                if (note.hit) return;
+
+                const timeDiff = note.time - elapsedBgmTime;
+                const y = JUDGE_LINE_Y - timeDiff * scrollSpeed;
+
+                if (y < -30) return;
+
+                const x = note.lane * LANE_WIDTH + LANE_WIDTH / 2;
+                const isEvenLane = note.lane % 2 === 0;
+                const color = isEvenLane ? '#00ffff' : '#ff007f';
+
+                ctx.save();
+                const tailLength = 40;
+                const tailGrad = ctx.createLinearGradient(x, y, x, y - tailLength);
+                tailGrad.addColorStop(0, color);
+                tailGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.strokeStyle = tailGrad;
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x, y - tailLength);
+                ctx.stroke();
+
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(x, y, NOTE_RADIUS, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // 判定テキスト
+            if (judgeTextTimer > 0) {
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.font = 'italic bold 26px sans-serif';
+
+                let judgeColor = '#00ffff';
+                if (currentJudgeText === 'PERFECT') {
+                    judgeColor = '#ffd32a';
+                    ctx.shadowColor = '#ffd32a';
+                    ctx.shadowBlur = 12;
+                } else if (currentJudgeText === 'GREAT') {
+                    judgeColor = '#ff007f';
+                } else if (currentJudgeText === 'GOOD') {
+                    judgeColor = '#4cd137';
+                } else if (currentJudgeText === 'MISS') {
+                    judgeColor = '#7f8c8d';
+                }
+
+                ctx.fillStyle = judgeColor;
+                ctx.fillText(currentJudgeText, canvas.width / 2, 280);
+                ctx.restore();
+            }
+
+            // コンボ数
+            ctx.save();
+            ctx.textAlign = 'center';
+            if (combo > 1) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'italic bold 32px monospace';
+                ctx.fillText(combo, canvas.width / 2, 200);
+
+                ctx.fillStyle = '#8fa0c5';
+                ctx.font = '12px monospace';
+                ctx.fillText('COMBO', canvas.width / 2, 220);
+            }
+
+            // スコア (右) & ステージ表示
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#ffd32a';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText(`SCORE: ${score.toLocaleString()}`, canvas.width - 20, 30);
+            
+            ctx.fillStyle = stage.color;
+            ctx.font = 'bold 11px monospace';
+            ctx.fillText(`${stage.name} [${stage.difficulty}]`, canvas.width - 20, 50);
+
+            // ==========================================
+            // HPネオンバーの描画
+            // ==========================================
+            const hpBarWidth = 140;
+            const hpBarHeight = 12;
+            const hpX = 20;
+            const hpY = 20;
+
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(hpX, hpY, hpBarWidth, hpBarHeight);
+
+            const hpRatio = hp / MAX_HP;
+            const barGrad = ctx.createLinearGradient(hpX, hpY, hpX + hpBarWidth, hpY);
+            barGrad.addColorStop(0, '#ff007f'); 
+            barGrad.addColorStop(1, '#00ffff'); 
+
+            ctx.fillStyle = barGrad;
+            ctx.fillRect(hpX + 2, hpY + 2, Math.max(0, (hpBarWidth - 4) * hpRatio), hpBarHeight - 4);
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText(`L-HP: ${Math.ceil(hp)}%`, hpX, hpY + hpBarHeight + 12);
+            ctx.restore();
+        }
+
+        // --- リザルト画面 ---
+        function drawResultScene() {
+            ctx.save();
+            ctx.textAlign = 'center';
+
+            ctx.shadowColor = '#ffd32a';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#ffd32a';
+            ctx.font = 'bold 30px monospace';
+            ctx.fillText('PLAY RESULT', canvas.width / 2, 100);
+            ctx.shadowBlur = 0;
+
+            const stage = STAGES[currentStageIndex];
+            ctx.fillStyle = stage.color;
+            ctx.font = 'bold 15px monospace';
+            ctx.fillText(`${stage.name} [${stage.difficulty}]`, canvas.width / 2, 135);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 22px monospace';
+            ctx.fillText(`SCORE: ${score.toLocaleString()}`, canvas.width / 2, 185);
+
+            ctx.fillStyle = '#00ffff';
+            ctx.font = '16px monospace';
+            ctx.fillText(`MAX COMBO: ${maxCombo}`, canvas.width / 2, 220);
+
+            ctx.textAlign = 'left';
+            const statX = canvas.width / 2 - 80;
+            ctx.fillStyle = '#ffd32a';
+            ctx.fillText(`PERFECT: ${results.perfect}`, statX, 275);
+            ctx.fillStyle = '#ff007f';
+            ctx.fillText(`GREAT  : ${results.great}`, statX, 305);
+            ctx.fillStyle = '#4cd137';
+            ctx.fillText(`GOOD   : ${results.good}`, statX, 335);
+            ctx.fillStyle = '#7f8c8d';
+            ctx.fillText(`MISS   : ${results.miss}`, statX, 365);
+
+            ctx.textAlign = 'center';
+            const blink = Math.sin(Date.now() / 150) * 0.3 + 0.7;
+            ctx.fillStyle = `rgba(0, 255, 255, ${blink})`;
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText('画面クリックでステージ選択に戻る', canvas.width / 2, 470);
+            ctx.restore();
+        }
+
+        // --- ゲームオーバー画面 ---
+        function drawGameOverScene() {
+            ctx.save();
+            ctx.textAlign = 'center';
+
+            ctx.shadowColor = '#ff007f';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#ff007f';
+            ctx.font = 'bold 36px monospace';
+            ctx.fillText('TRACK CRASH', canvas.width / 2, 180);
+            ctx.shadowBlur = 0;
+
+            const stage = STAGES[currentStageIndex];
+            ctx.fillStyle = stage.color;
+            ctx.font = 'bold 15px monospace';
+            ctx.fillText(`STAGE: ${stage.name}`, canvas.width / 2, 220);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px monospace';
+            ctx.fillText('シグナルロスト：エネルギーが枯渇しました', canvas.width / 2, 270);
+
+            ctx.font = '60px sans-serif';
+            ctx.fillText('🚫📡💔', canvas.width / 2, 350);
+
+            const blink = Math.sin(Date.now() / 150) * 0.3 + 0.7;
+            ctx.fillStyle = `rgba(255, 0, 127, ${blink})`;
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText('画面クリックでステージ選択に戻る', canvas.width / 2, 470);
+            ctx.restore();
+        }
+
+        // ------------------------------------------------------------------
+        // [セクション 9] メインゲームループ (Game Loop)
+        // ------------------------------------------------------------------
+        let lastTime = 0;
+
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            update(deltaTime);
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function() {
+            init();
+        };
+
+    </script>
+</body>
+</html>

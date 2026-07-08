@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TETRI-SHIPPER | ブロック合体出荷パズル</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&family=Outfit:wght@400;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==========================================================================
+           1. RESET & VARIABLES
+           ========================================================================== */
+        :root {
+            --bg-dark: #070913;
+            --bg-darker: #04050a;
+            --card-bg: #101424;
+            --card-border: rgba(59, 130, 246, 0.15);
+            --card-border-hover: rgba(0, 240, 255, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --neon-cyan: #00f0ff;
+            --neon-cyan-glow: rgba(0, 240, 255, 0.4);
+            --neon-purple: #bd5cff;
+            --font-family: 'M PLUS Rounded 1c', 'Outfit', 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Ambient background glow effects */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background-image: radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.25) 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                              radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.05) 0px, transparent 60%);
+            background-size: cover;
+        }
+
+        .ambient-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* ==========================================================================
+           2. MAIN CONTAINER & HERO SECTION
+           ========================================================================== */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 3rem;
+        }
+
+        /* Hero Panel (Main Game Info) */
+        .hero-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 3.5rem 2rem;
+            text-align: center;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 
+                        0 0 40px rgba(59, 130, 246, 0.05);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            transition: border-color 0.3s;
+        }
+
+        .hero-card:hover {
+            border-color: var(--card-border-hover);
+        }
+
+        .hero-title {
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: -0.01em;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.15),
+                         0 4px 12px rgba(0, 0, 0, 0.5);
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            max-width: 680px;
+            line-height: 1.7;
+        }
+
+        .hero-subtitle span {
+            color: var(--text-main);
+            display: block;
+            margin-bottom: 0.3rem;
+            font-size: 1.25rem;
+        }
+
+        /* Glowing CTA Button */
+        .play-btn {
+            background: linear-gradient(135deg, #00f0ff 0%, #0072ff 100%);
+            color: #04050a;
+            border: none;
+            padding: 1.1rem 2.8rem;
+            font-size: 1.2rem;
+            font-weight: 900;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.4), 
+                        0 4px 15px rgba(0, 114, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            text-decoration: none;
+            margin-top: 0.5rem;
+        }
+
+        .play-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 35px rgba(0, 240, 255, 0.7), 
+                        0 8px 25px rgba(0, 114, 255, 0.5);
+            filter: brightness(1.15);
+        }
+
+        .play-btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* ==========================================================================
+           3. FEATURES SECTION (TEXT-ONLY CARDS)
+           ========================================================================== */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .feature-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            backdrop-filter: blur(8px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--card-border-hover);
+            box-shadow: 0 20px 35px -10px rgba(0, 240, 255, 0.15);
+        }
+
+        .feature-icon {
+            font-size: 2.2rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            margin-bottom: 0.2rem;
+        }
+
+        .feature-title {
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+        }
+
+        .feature-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        /* ==========================================================================
+           4. HOW TO PLAY SECTION
+           ========================================================================== */
+        .controls-section {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .controls-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            border-bottom: 2px solid rgba(0, 240, 255, 0.15);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .controls-subtitle {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-top: -1.2rem;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            width: 100%;
+            text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .control-card {
+            background-color: rgba(7, 9, 19, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 1rem;
+            transition: all 0.3s;
+        }
+
+        .control-card:hover {
+            border-color: rgba(59, 130, 246, 0.15);
+            background-color: rgba(7, 9, 19, 0.8);
+        }
+
+        /* Keyboard / Badge element styles */
+        .keycap-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .keycap {
+            background: #ffffff;
+            color: #070913;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.15rem;
+            padding: 0.4rem 0.9rem;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            border-bottom: 4px solid #9ca3af;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            letter-spacing: 0.05em;
+            display: inline-block;
+        }
+
+        .keycap-alt {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .grass-badge {
+            color: var(--neon-cyan);
+            font-size: 1.25rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .grass-badge span {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .control-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient background effects -->
+    <div class="ambient-bg"></div>
+    <div class="ambient-grid"></div>
+
+    <!-- Main Container -->
+    <div class="container">
+        
+        <!-- 1. HERO SECTION -->
+        <section class="hero-card">
+            <h1 class="hero-title">TETRI-SHIPPER</h1>
+            <p class="hero-subtitle">
+                <span>同じ色のブロックを合体させて出荷レシピを完成させよう！</span>
+                直感操作で遊べる爽快な合体パズルアクション
+            </p>
+            <a href="https://eitochugenji.github.io/JavaWeb/" class="play-btn">
+                今すぐブラウザで遊ぶ 🎮
+            </a>
+        </section>
+
+        <!-- 2. FEATURES SECTION (GRID OF 2 CARDS) -->
+        <div class="features-grid">
+            
+            <!-- Card 1 -->
+            <div class="feature-card">
+                <div class="feature-icon">🧩</div>
+                <h3 class="feature-title">同色ブロックを自動合体</h3>
+                <p class="feature-desc">
+                    バラバラのブロックを選択して空きマスへ移動！隣り合う同じ色のブロックは自動でくっつき、1つの大きな塊になります。
+                </p>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3 class="feature-title">見本レシピ通りに出荷</h3>
+                <p class="feature-desc">
+                    合体させたブロックの形状が、画面右側に表示されている出荷レシピと同じ形（テトリミノ形状など）になると、自動的に出荷されてスコアが加算されます！
+                </p>
+            </div>
+
+        </div>
+
+        <!-- 3. HOW TO PLAY / CONTROLS SECTION -->
+        <section class="controls-section">
+            <h2 class="controls-title">遊び方・操作方法</h2>
+            <p class="controls-subtitle">PCでもスマートフォン（画面タップ）でも手軽に遊べます。</p>
+            
+            <div class="controls-grid">
+                
+                <!-- PC/Mobile Move -->
+                <div class="control-card">
+                    <div class="keycap-container">
+                        <span class="keycap">クリック / タップ</span>
+                        <span class="keycap-alt">または 選択ブロックの再クリック</span>
+                    </div>
+                    <p class="control-desc">ブロックを選択して空きマスへ移動。選択中のブロックを再クリックすると90度回転します。</p>
+                </div>
+
+                <!-- Skill / Release -->
+                <div class="control-card">
+                    <div class="keycap-container">
+                        <span class="keycap">長押し</span>
+                        <span class="keycap-alt">画面の長押し / ロングタップ</span>
+                    </div>
+                    <p class="control-desc">間違えてくっつけてしまったブロックは、長押しすることで切り離す（ばらす）ことができます。</p>
+                </div>
+
+                <!-- Recipe Shipped -->
+                <div class="control-card">
+                    <div class="grass-badge">
+                        📋 レシピ <span>(右側の見本)</span>
+                    </div>
+                    <p class="control-desc">同じ色・形状にブロックを組み合わせると、笑顔で自動出荷されスコアアップ！制限時間内に出荷しまくりましょう！</p>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+</body>
+</html>

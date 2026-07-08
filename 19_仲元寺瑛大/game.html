@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TETRI-SHIPPER | ブロック合体出荷パズル</title>
+    <!-- Google Fonts から丸みのあるかわいい日本語フォント (M PLUS Rounded 1c) を読み込み -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==========================================================================
+           1. CSSデザインシステム & スタイリング (明るいアニメ風)
+           ========================================================================== */
+        
+        :root {
+            --bg-color: #ecfeff;       /* 淡いさわやかなライトブルー */
+            --border-color: #1e293b;   /* アニメ風の太い黒枠用カラー */
+            --text-color: #1e293b;
+            --panel-bg: #ffffff;
+            --primary-yellow: #fef08a; /* ポップなイエロー */
+            --btn-orange: #ff9f43;     /* 元気なオレンジ */
+            --font-family: 'M PLUS Rounded 1c', 'Outfit', sans-serif;
+        }
+
+        /* 基本リセット */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            /* ポップなドット背景パターン */
+            background-image: radial-gradient(#bae6fd 20%, transparent 20%);
+            background-size: 24px 24px;
+            font-family: var(--font-family);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ゲーム画面全体のコンテナ（アメコミ風の太い立体枠） */
+        .game-container {
+            position: relative;
+            width: 95vw;
+            height: 65vw; /* 横長比率 */
+            max-width: 960px;
+            max-height: 640px;
+            background: #f8fafc;
+            border: 4px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: 10px 10px 0px var(--border-color); /* フラットな3D影 */
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 左側：メインのゲーム盤面（Canvas） */
+        .canvas-area {
+            position: relative;
+            width: 65%;
+            height: 100%;
+            border-right: 4px solid var(--border-color);
+            background-color: #fef3c7; /* 温かみのある盤面背景 */
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* 右側：サイドバー (スコア、時間、出荷レシピリスト) */
+        .sidebar {
+            width: 35%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* HUD コンテナ */
+        .hud-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .hud-card {
+            background: #f1f5f9;
+            border: 3px solid var(--border-color);
+            border-radius: 16px;
+            padding: 0.6rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 4px 4px 0px var(--border-color);
+        }
+
+        .hud-title {
+            font-size: 0.8rem;
+            font-weight: 900;
+            color: #64748b;
+        }
+
+        .hud-val {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: #0f172a;
+        }
+
+        /* レシピリスト（完成見本） */
+        .recipe-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .recipe-section-title {
+            font-size: 1rem;
+            font-weight: 900;
+            margin-bottom: 0.8rem;
+            text-align: center;
+            background: var(--primary-yellow);
+            border: 3px solid var(--border-color);
+            padding: 0.3rem;
+            border-radius: 10px;
+            box-shadow: 3px 3px 0px var(--border-color);
+        }
+
+        .recipe-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        /* 個々のレシピカード */
+        .recipe-item {
+            display: flex;
+            align-items: center;
+            background: #fafafa;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.4rem 0.8rem;
+            gap: 1rem;
+        }
+
+        .recipe-color-badge {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        .recipe-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            width: 70px;
+        }
+
+        /* レシピ形状のプレビュー */
+        .recipe-grid {
+            display: grid;
+            gap: 2px;
+            background: #e2e8f0;
+            padding: 3px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        .recipe-cell {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+        .recipe-cell.active {
+            border: 1px solid var(--border-color);
+        }
+
+        /* UIオーバーレイ */
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(236, 254, 255, 0.9); /* さわやかな半透明背景 */
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .ui-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* アニメ風ポップアップパネル */
+        .pop-panel {
+            background: #ffffff;
+            border: 4px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 8px 8px 0px var(--border-color);
+            max-width: 85%;
+        }
+
+        .pop-title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+        }
+
+        .pop-subtitle {
+            color: #ff9f43;
+            font-weight: 900;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pop-panel p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            color: #475569;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        /* アニメ調の飛び出る3Dボタン */
+        .btn {
+            background: var(--btn-orange);
+            color: white;
+            border: 3px solid var(--border-color);
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 900;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--border-color);
+            transition: all 0.1s ease;
+            font-family: var(--font-family);
+        }
+
+        .btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px var(--border-color);
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--border-color);
+        }
+
+        /* スコアアップポップアップ */
+        .score-popup {
+            position: absolute;
+            color: #ff9f43;
+            font-weight: 900;
+            font-size: 1.8rem;
+            pointer-events: none;
+            z-index: 20;
+            text-shadow: 2px 2px 0px #fff, -2px -2px 0px #fff, 2px -2px 0px #fff, -2px 2px 0px #fff, 4px 4px 0px var(--border-color);
+            animation: floatUp 0.8s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ゲーム全体のコンテナ -->
+    <div class="game-container">
+        
+        <!-- 左側：ゲーム盤面 (Canvas) -->
+        <div class="canvas-area">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+            <!-- 2-1. タイトル画面 -->
+            <div id="titleOverlay" class="ui-overlay active">
+                <div class="pop-panel">
+                    <h1 class="pop-title">TETRI-SHIPPER</h1>
+                    <h3 class="pop-subtitle">〜同じ色を合体させて出荷しよう！〜</h3>
+                    <p>
+                        <strong>【遊び方】</strong><br>
+                        1. 散らばっているブロックを<strong>クリックして選択</strong>します。<br>
+                        2. <strong>空いているマスをクリック</strong>すると、塊ごとそこへスライド移動します。<br>
+                        3. 移動して同色のブロックと隣接すると、<strong>自動的にくっついて1つの塊</strong>になります！<br>
+                        4. <strong>選択中の塊をもう一度クリック</strong>すると、90度右回転します。<br>
+                        5. 間違えてくっつけたブロックは、<strong>長押しすると切り離す（ばらす）</strong>ことができます！<br>
+                        6. 塊が4つになり、右側のレシピと同じ形になると<strong>笑顔で自動出荷</strong>されます！
+                    </p>
+                    <button class="btn" id="startBtn">出荷スタート！</button>
+                </div>
+            </div>
+
+            <!-- 2-2. リザルト画面 -->
+            <div id="resultOverlay" class="ui-overlay">
+                <div class="pop-panel">
+                    <h2 class="pop-title" style="color: #22c55e;">タイムアップ！</h2>
+                    <h3 class="pop-subtitle">本日の出荷作業は終了です！</h3>
+                    <div style="margin: 1.5rem 0;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #64748b;">獲得スコア</div>
+                        <div id="finalScore" style="font-size: 3.5rem; font-weight: 900; color: #ff9f43;">0</div>
+                    </div>
+                    <button class="btn" id="restartBtn">もう一回挑戦する</button>
+                    <button class="btn" id="backToTitleBtn" style="background: #94a3b8; margin-top: 1rem;">タイトルに戻る</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：サイドバー -->
+        <div class="sidebar">
+            <div class="hud-panel">
+                <div class="hud-card">
+                    <span class="hud-title">SCORE</span>
+                    <span id="hudScore" class="hud-val">0</span>
+                </div>
+                <div class="hud-card">
+                    <span class="hud-title">TIME</span>
+                    <span id="hudTime" class="hud-val">30.0s</span>
+                </div>
+            </div>
+
+            <div class="recipe-section">
+                <h3 class="recipe-section-title">出荷レシピ（見本）</h3>
+                <div class="recipe-list" id="recipeListContainer">
+                    <!-- レシピが動的に挿入されます -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==========================================================================
+       3. JavaScript ゲームロジック
+       ========================================================================== -->
+    <script>
+        // エラーハンドラ (デバッグ用)
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            alert("エラーが発生しました！\nメッセージ: " + msg + "\n行番号: " + lineNo + "\n列番号: " + columnNo + "\nスタックトレース: " + (error ? error.stack : "なし"));
+            return false;
+        };
+
+        // --- 3-1. 定数・設定 (Config) ---
+        const GRID_SIZE = 8;          // 8x8 グリッド
+        const CANVAS_SIZE = 600;      // 600x600 キャンバス
+        const CELL_SIZE = CANVAS_SIZE / GRID_SIZE; // 1マスのサイズ (75px)
+        const GAME_DURATION = 30;     // 制限時間（30秒）
+
+        const SCENE = {
+            TITLE: 'title',
+            GAME: 'game',
+            RESULT: 'result'
+        };
+
+        // レシピ（見本）の定義
+        const RECIPES = {
+            '#06b6d4': { // 水色: I型 (4x1)
+                name: 'I-MINO',
+                gridWidth: 4, gridHeight: 4,
+                grid: [[1,1,1,1]],
+                patterns: [
+                    '0,0|1,0|2,0|3,0',
+                    '0,0|0,1|0,2|0,3'
+                ]
+            },
+            '#eab308': { // 黄色: O型 (2x2)
+                name: 'O-MINO',
+                gridWidth: 2, gridHeight: 2,
+                grid: [[1,1],[1,1]],
+                patterns: [
+                    '0,0|1,0|0,1|1,1'
+                ]
+            },
+            '#a855f7': { // 紫色: T型
+                name: 'T-MINO',
+                gridWidth: 3, gridHeight: 2,
+                grid: [[0,1,0],[1,1,1]],
+                patterns: [
+                    '1,0|0,1|1,1|2,1',
+                    '0,0|0,1|1,1|0,2',
+                    '0,0|1,0|2,0|1,1',
+                    '1,0|0,1|1,1|1,2'
+                ]
+            },
+            '#22c55e': { // 緑色: S型
+                name: 'S-MINO',
+                gridWidth: 3, gridHeight: 2,
+                grid: [[0,1,1],[1,1,0]],
+                patterns: [
+                    '1,0|2,0|0,1|1,1',
+                    '0,0|0,1|1,1|1,2'
+                ]
+            },
+            '#ef4444': { // 赤色: Z型
+                name: 'Z-MINO',
+                gridWidth: 3, gridHeight: 2,
+                grid: [[1,1,0],[0,1,1]],
+                patterns: [
+                    '0,0|1,0|1,1|2,1',
+                    '1,0|0,1|1,1|0,2'
+                ]
+            },
+            '#3b82f6': { // 青色: J型
+                name: 'J-MINO',
+                gridWidth: 3, gridHeight: 2,
+                grid: [[1,0,0],[1,1,1]],
+                patterns: [
+                    '0,0|0,1|1,1|2,1',
+                    '0,0|1,0|0,1|0,2',
+                    '0,0|1,0|2,0|2,1',
+                    '1,0|1,1|0,2|1,2'
+                ]
+            },
+            '#f97316': { // オレンジ色: L型
+                name: 'L-MINO',
+                gridWidth: 3, gridHeight: 2,
+                grid: [[0,0,1],[1,1,1]],
+                patterns: [
+                    '2,0|0,1|1,1|2,1',
+                    '0,0|0,1|0,2|1,2',
+                    '0,0|1,0|2,0|0,1',
+                    '0,0|1,0|1,1|1,2'
+                ]
+            }
+        };
+
+        const COLOR_POOL = Object.keys(RECIPES);
+
+        // --- 3-2. ゲーム状態変数 (State Variables) ---
+        let currentScene = SCENE.TITLE;
+        let score = 0;
+        let timeLeft = GAME_DURATION;
+        let lastTime = 0;
+
+        let board = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null)); // 盤面の各セルにあるBlockの参照
+        let activeGroups = [];          // 盤面上に存在する BlockGroup オブジェクトのリスト
+        let activeColors = [];          // 現在盤面に登場している色のリスト（常に3色）
+        let unusedColors = [];          // 待機中の色のリスト
+
+        let selectedGroup = null;       // 現在選択されている BlockGroup
+        let shippingBlocks = [];        // 出荷中のブロック（グループ解体して個別に動く）
+        let particles = [];             // 演出星エフェクト
+
+        // --- 3-3. 初期化処理 (Initialization) ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const titleOverlay = document.getElementById('titleOverlay');
+        const resultOverlay = document.getElementById('resultOverlay');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const backToTitleBtn = document.getElementById('backToTitleBtn');
+        const hudScore = document.getElementById('hudScore');
+        const hudTime = document.getElementById('hudTime');
+        const finalScore = document.getElementById('finalScore');
+        const recipeListContainer = document.getElementById('recipeListContainer');
+
+        startBtn.addEventListener('click', () => changeScene(SCENE.GAME));
+        restartBtn.addEventListener('click', () => changeScene(SCENE.GAME));
+        backToTitleBtn.addEventListener('click', () => changeScene(SCENE.TITLE));
+        let pressTimer = null;
+        let isLongPress = false;
+        let startGridX = -1;
+        let startGridY = -1;
+
+        // mousedownイベント: 長押し検知タイマー開始
+        canvas.addEventListener('mousedown', (e) => {
+            if (currentScene !== SCENE.GAME) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            const scaleX = CANVAS_SIZE / rect.width;
+            const scaleY = CANVAS_SIZE / rect.height;
+            const gx = Math.floor((clickX * scaleX) / CELL_SIZE);
+            const gy = Math.floor((clickY * scaleY) / CELL_SIZE);
+
+            if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
+                startGridX = gx;
+                startGridY = gy;
+                isLongPress = false;
+
+                // 400msの長押し判定タイマーを開始
+                pressTimer = setTimeout(() => {
+                    triggerLongPress(gx, gy);
+                }, 400);
+            }
+        });
+
+        // mouseupイベント: 長押ししてなければクリック処理
+        canvas.addEventListener('mouseup', (e) => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+
+            if (currentScene !== SCENE.GAME) return;
+
+            if (!isLongPress) {
+                const rect = canvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                const scaleX = CANVAS_SIZE / rect.width;
+                const scaleY = CANVAS_SIZE / rect.height;
+                const gx = Math.floor((clickX * scaleX) / CELL_SIZE);
+                const gy = Math.floor((clickY * scaleY) / CELL_SIZE);
+
+                handleCanvasClick(gx, gy);
+            }
+            isLongPress = false;
+        });
+
+        // mouseleaveイベント: マウスが離れたらタイマー解除
+        canvas.addEventListener('mouseleave', () => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+            isLongPress = false;
+        });
+
+        // mousemoveイベント: グリッドが動いたらタイマー解除
+        canvas.addEventListener('mousemove', (e) => {
+            if (pressTimer) {
+                const rect = canvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                const scaleX = CANVAS_SIZE / rect.width;
+                const scaleY = CANVAS_SIZE / rect.height;
+                const gx = Math.floor((clickX * scaleX) / CELL_SIZE);
+                const gy = Math.floor((clickY * scaleY) / CELL_SIZE);
+
+                if (gx !== startGridX || gy !== startGridY) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            }
+        });
+
+        function init() {
+            changeScene(SCENE.TITLE);
+            requestAnimationFrame(gameLoop);
+        }
+
+        // レシピ見本の描画
+        function buildRecipeListUI() {
+            recipeListContainer.innerHTML = '';
+            for (const color in RECIPES) {
+                const recipe = RECIPES[color];
+                const item = document.createElement('div');
+                item.className = 'recipe-item';
+
+                const badge = document.createElement('div');
+                badge.className = 'recipe-color-badge';
+                badge.style.backgroundColor = color;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'recipe-name';
+                nameSpan.textContent = recipe.name;
+
+                const grid = document.createElement('div');
+                grid.className = 'recipe-grid';
+                grid.style.gridTemplateColumns = `repeat(${recipe.gridWidth}, 10px)`;
+
+                const r = recipe.grid.length;
+                const c = recipe.grid[0].length;
+                for (let y = 0; y < r; y++) {
+                    for (let x = 0; x < c; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'recipe-cell';
+                        if (recipe.grid[y][x] === 1) {
+                            cell.className += ' active';
+                            cell.style.backgroundColor = color;
+                        } else {
+                            cell.style.backgroundColor = 'transparent';
+                        }
+                        grid.appendChild(cell);
+                    }
+                }
+
+                item.appendChild(badge);
+                item.appendChild(nameSpan);
+                item.appendChild(grid);
+                recipeListContainer.appendChild(item);
+            }
+        }
+
+        // --- 3-4. ゲームオブジェクト定義 (Block & BlockGroup) ---
+
+        // 単一の1x1ブロックを表すクラス
+        class Block {
+            constructor(gridX, gridY, color) {
+                this.gridX = gridX;
+                this.gridY = gridY;
+                this.color = color;
+                
+                // 実描画座標 (補間移動用)
+                this.x = gridX * CELL_SIZE;
+                this.y = gridY * CELL_SIZE;
+
+                this.group = null; // 所属する BlockGroup
+                this.faceType = Math.floor(Math.random() * 3);
+                this.blinkTimer = Math.random() * 200;
+                
+                this.status = 'normal'; // 'normal' | 'shipping'
+                this.vx = 0;
+                this.vy = 0;
+            }
+
+            update(deltaTime) {
+                if (this.status === 'normal') {
+                    // 目標グリッド位置に向けてスムーズに移動する
+                    const targetX = this.gridX * CELL_SIZE;
+                    const targetY = this.gridY * CELL_SIZE;
+                    
+                    const dx = targetX - this.x;
+                    const dy = targetY - this.y;
+
+                    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
+                        this.x = targetX;
+                        this.y = targetY;
+                    } else {
+                        this.x += dx * 0.25;
+                        this.y += dy * 0.25;
+                    }
+
+                    // 目まばたき更新
+                    this.blinkTimer -= deltaTime * 60;
+                    if (this.blinkTimer < 0) {
+                        this.blinkTimer = Math.random() * 200 + 100;
+                    }
+                } 
+                else if (this.status === 'shipping') {
+                    // 右側の出荷口へ吹き飛ぶ
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vy += 0.5; // 重力
+
+                    if (this.x > CANVAS_SIZE + CELL_SIZE) {
+                        return false; // 削除フラグ
+                    }
+                }
+                return true;
+            }
+
+            // 単体ブロック（出荷中など）の描画
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = varColorToDark(this.color);
+                ctx.lineWidth = 4;
+                
+                drawRoundedRect(ctx, 4, 4, CELL_SIZE - 8, CELL_SIZE - 8, 12);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                drawRoundedRect(ctx, 8, 8, CELL_SIZE - 16, 12, 6);
+                ctx.fill();
+
+                this.drawFace(ctx);
+                ctx.restore();
+            }
+
+            // 顔のパーツ描画
+            drawFace(ctx) {
+                const centerX = CELL_SIZE / 2;
+                const centerY = CELL_SIZE / 2 + 5;
+                
+                ctx.fillStyle = '#1e293b';
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+
+                if (this.status === 'shipping') {
+                    // ニッコリ目
+                    ctx.beginPath(); ctx.arc(centerX - 10, centerY - 2, 6, Math.PI, 0, false); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(centerX + 10, centerY - 2, 6, Math.PI, 0, false); ctx.stroke();
+                    // 大きな笑い口
+                    ctx.fillStyle = '#ff7675';
+                    ctx.beginPath(); ctx.arc(centerX, centerY + 6, 8, 0, Math.PI); ctx.fill(); ctx.stroke();
+                } 
+                else if (selectedGroup === this.group) {
+                    // 選択中 (きょとん / ウインク)
+                    ctx.beginPath(); ctx.moveTo(centerX - 15, centerY - 5); ctx.lineTo(centerX - 8, centerY - 2); ctx.lineTo(centerX - 15, centerY + 1); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(centerX + 10, centerY - 2, 5, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(centerX, centerY + 6, 4, 0, Math.PI * 2); ctx.fill();
+                } 
+                else {
+                    // 通常困り顔
+                    const isBlinking = this.blinkTimer < 10;
+                    if (isBlinking) {
+                        ctx.beginPath(); ctx.moveTo(centerX - 14, centerY - 2); ctx.lineTo(centerX - 6, centerY - 2); ctx.moveTo(centerX + 6, centerY - 2); ctx.lineTo(centerX + 14, centerY - 2); ctx.stroke();
+                    } else {
+                        if (this.faceType === 1) { // ぐるぐる
+                            ctx.beginPath(); ctx.arc(centerX - 10, centerY - 2, 5, 0, Math.PI * 2); ctx.stroke();
+                            ctx.beginPath(); ctx.arc(centerX + 10, centerY - 2, 5, 0, Math.PI * 2); ctx.stroke();
+                        } else {
+                            ctx.beginPath(); ctx.arc(centerX - 10, centerY - 2, 5, 0, Math.PI * 2); ctx.fill();
+                            ctx.beginPath(); ctx.arc(centerX + 10, centerY - 2, 5, 0, Math.PI * 2); ctx.fill();
+                            ctx.fillStyle = '#ffffff';
+                            ctx.beginPath(); ctx.arc(centerX - 11, centerY - 4, 1.8, 0, Math.PI * 2); ctx.fill();
+                            ctx.beginPath(); ctx.arc(centerX + 9, centerY - 4, 1.8, 0, Math.PI * 2); ctx.fill();
+                            ctx.fillStyle = '#1e293b';
+                        }
+                    }
+
+                    ctx.beginPath();
+                    if (this.faceType === 0) { // 「へ」の口
+                        ctx.moveTo(centerX - 6, centerY + 8);
+                        ctx.quadraticCurveTo(centerX, centerY + 3, centerX + 6, centerY + 8);
+                        ctx.stroke();
+                    } else if (this.faceType === 2) { // 波線
+                        ctx.moveTo(centerX - 6, centerY + 6);
+                        ctx.bezierCurveTo(centerX - 3, centerY + 9, centerX - 1, centerY + 3, centerX + 2, centerY + 6);
+                        ctx.stroke();
+                    } else {
+                        ctx.moveTo(centerX - 4, centerY + 6); ctx.lineTo(centerX + 4, centerY + 6); ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // 結合されたブロックの塊（オブジェクト）を管理するクラス
+        class BlockGroup {
+            constructor(color) {
+                this.color = color;
+                this.blocks = [];
+                this.isMoving = false;
+            }
+
+            addBlock(block) {
+                block.group = this;
+                this.blocks.push(block);
+            }
+
+            // 指定された方向に同じグループの隣接ブロックがあるか調べる
+            hasNeighbor(block, dir) {
+                let tx = block.gridX;
+                let ty = block.gridY;
+                if (dir === 'up') ty--;
+                else if (dir === 'down') ty++;
+                else if (dir === 'left') tx--;
+                else if (dir === 'right') tx++;
+
+                return this.blocks.some(b => b.gridX === tx && b.gridY === ty);
+            }
+
+            // グループ全体の移動処理
+            // clickedBlock: 基準ブロック, (tx, ty): 移動目標セル
+            moveTo(tx, ty, clickedBlock) {
+                const dx = tx - clickedBlock.gridX;
+                const dy = ty - clickedBlock.gridY;
+
+                // 1. 移動できるかシミュレーション＆チェック
+                let canMove = true;
+                for (const b of this.blocks) {
+                    const nx = b.gridX + dx;
+                    const ny = b.gridY + dy;
+
+                    // 盤面外なら移動不可
+                    if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) {
+                        canMove = false;
+                        break;
+                    }
+
+                    // 重複セルに別のブロックがあり、それが自グループ以外のブロックなら移動不可
+                    const targetBlock = board[ny][nx];
+                    if (targetBlock && targetBlock.group !== this) {
+                        canMove = false;
+                        break;
+                    }
+                }
+
+                if (!canMove) return false;
+
+                // 2. 移動を実行
+                // 古い位置情報をクリア
+                this.blocks.forEach(b => {
+                    board[b.gridY][b.gridX] = null;
+                });
+
+                // 新しい位置を設定
+                this.blocks.forEach(b => {
+                    b.gridX += dx;
+                    b.gridY += dy;
+                    board[b.gridY][b.gridX] = b;
+                });
+
+                this.isMoving = true;
+                return true;
+            }
+
+            // 選択中のグループをその場で時計回りに90度回転
+            rotate() {
+                if (this.isMoving) return false;
+
+                // 平均座標を回転の中心とする
+                const xs = this.blocks.map(b => b.gridX);
+                const ys = this.blocks.map(b => b.gridY);
+                const cx = Math.round(xs.reduce((a, b) => a + b, 0) / this.blocks.length);
+                const cy = Math.round(ys.reduce((a, b) => a + b, 0) / this.blocks.length);
+
+                // 1. 回転後の座標を計算＆チェック
+                let canRotate = true;
+                const newCoords = [];
+
+                for (const b of this.blocks) {
+                    // 中心からの相対座標
+                    const rx = b.gridX - cx;
+                    const ry = b.gridY - cy;
+
+                    // 90度時計回り回転: (rx, ry) -> (-ry, rx)
+                    const nx = cx - ry;
+                    const ny = cy + rx;
+
+                    if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) {
+                        canRotate = false;
+                        break;
+                    }
+
+                    const targetBlock = board[ny][nx];
+                    if (targetBlock && targetBlock.group !== this) {
+                        canRotate = false;
+                        break;
+                    }
+                    newCoords.push({ nx, ny });
+                }
+
+                if (!canRotate) return false;
+
+                // 2. 回転を実行
+                this.blocks.forEach(b => {
+                    board[b.gridY][b.gridX] = null;
+                });
+
+                for (let i = 0; i < this.blocks.length; i++) {
+                    const b = this.blocks[i];
+                    const coord = newCoords[i];
+                    b.gridX = coord.nx;
+                    b.gridY = coord.ny;
+                    board[b.gridY][b.gridX] = b;
+                }
+
+                this.isMoving = true;
+                return true;
+            }
+
+            update(deltaTime) {
+                let allDone = true;
+                this.blocks.forEach(b => {
+                    b.update(deltaTime);
+                    // 描画座標が目標のグリッド座標にまだ到達していないものがあればallDoneフラグを下げる
+                    if (b.x !== b.gridX * CELL_SIZE || b.y !== b.gridY * CELL_SIZE) {
+                        allDone = false;
+                    }
+                });
+
+                if (this.isMoving && allDone) {
+                    this.isMoving = false;
+                    // 移動が終わったら同色の隣接ブロックとのマージおよびレシピ完成判定を実行
+                    handlePostMove(this);
+                }
+            }
+
+            draw(ctx) {
+                // 1. 塗りつぶし部分を先に描画
+                this.blocks.forEach(b => {
+                    ctx.save();
+                    ctx.translate(b.x, b.y);
+                    ctx.fillStyle = this.color;
+                    
+                    // くっついて見えるように、セルぴったりで塗りつぶす
+                    ctx.fillRect(0, 0, CELL_SIZE, CELL_SIZE);
+                    
+                    // 光沢
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.fillRect(4, 4, CELL_SIZE - 8, 8);
+                    
+                    ctx.restore();
+                });
+
+                // 2. グループ境界線 (黒太枠) を外周部分だけ描画
+                this.blocks.forEach(b => {
+                    ctx.save();
+                    ctx.translate(b.x, b.y);
+                    
+                    ctx.strokeStyle = varColorToDark(this.color);
+                    ctx.lineWidth = 4;
+                    ctx.lineCap = 'round';
+
+                    const hasUp = this.hasNeighbor(b, 'up');
+                    const hasDown = this.hasNeighbor(b, 'down');
+                    const hasLeft = this.hasNeighbor(b, 'left');
+                    const hasRight = this.hasNeighbor(b, 'right');
+
+                    if (!hasUp) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(CELL_SIZE, 0); ctx.stroke(); }
+                    if (!hasDown) { ctx.beginPath(); ctx.moveTo(0, CELL_SIZE); ctx.lineTo(CELL_SIZE, CELL_SIZE); ctx.stroke(); }
+                    if (!hasLeft) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, CELL_SIZE); ctx.stroke(); }
+                    if (!hasRight) { ctx.beginPath(); ctx.moveTo(CELL_SIZE, 0); ctx.lineTo(CELL_SIZE, CELL_SIZE); ctx.stroke(); }
+
+                    // 選択時の白い点線インジケータ
+                    if (selectedGroup === this) {
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 3;
+                        ctx.setLineDash([4, 4]);
+                        if (!hasUp) { ctx.beginPath(); ctx.moveTo(2, 2); ctx.lineTo(CELL_SIZE - 2, 2); ctx.stroke(); }
+                        if (!hasDown) { ctx.beginPath(); ctx.moveTo(2, CELL_SIZE - 2); ctx.lineTo(CELL_SIZE - 2, CELL_SIZE - 2); ctx.stroke(); }
+                        if (!hasLeft) { ctx.beginPath(); ctx.moveTo(2, 2); ctx.lineTo(2, CELL_SIZE - 2); ctx.stroke(); }
+                        if (!hasRight) { ctx.beginPath(); ctx.moveTo(CELL_SIZE - 2, 2); ctx.lineTo(CELL_SIZE - 2, CELL_SIZE - 2); ctx.stroke(); }
+                    }
+
+                    // 顔を描画
+                    b.drawFace(ctx);
+
+                    ctx.restore();
+                });
+            }
+        }
+
+        // --- 3-5. 入力ハンドラ (Input Handling) ---
+        function handleCanvasClick(gx, gy) {
+            if (currentScene !== SCENE.GAME) return;
+
+            if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
+                const clickedBlock = board[gy][gx];
+
+                if (clickedBlock) {
+                    // 出荷中は操作不可
+                    if (clickedBlock.status === 'shipping') return;
+
+                    const group = clickedBlock.group;
+
+                    if (selectedGroup === group) {
+                        // 選択されたグループをもう一度クリックすると、90度回転！
+                        group.rotate();
+                    } else {
+                        // 新しいグループを選択
+                        selectedGroup = group;
+                    }
+                } 
+                else if (selectedGroup) {
+                    // 空いているマスをクリックした場合は、選択されているグループを移動
+                    const anchor = selectedGroup.blocks[0];
+                    const success = selectedGroup.moveTo(gx, gy, anchor);
+                    if (success) {
+                        selectedGroup = null; // 移動完了したら選択解除
+                    }
+                }
+            }
+        }
+
+        // 長押し判定時の処理（グループから特定のブロックを切り離す）
+        function triggerLongPress(gx, gy) {
+            isLongPress = true;
+            const clickedBlock = board[gy][gx];
+
+            if (clickedBlock && clickedBlock.status === 'normal') {
+                const group = clickedBlock.group;
+
+                // ブロック数が2以上のグループからのみ切り離し可能
+                if (group && group.blocks.length > 1) {
+                    // 古いグループからブロックを削除
+                    group.blocks = group.blocks.filter(b => b !== clickedBlock);
+
+                    // 新しい単体グループを作成して追加
+                    const newGroup = new BlockGroup(clickedBlock.color);
+                    newGroup.addBlock(clickedBlock);
+                    activeGroups.push(newGroup);
+
+                    // 選択状態にする
+                    selectedGroup = newGroup;
+
+                    // 切り離し演出
+                    createStars(clickedBlock.x + CELL_SIZE / 2, clickedBlock.y + CELL_SIZE / 2, '#ffffff', 8);
+                    spawnScorePopup(clickedBlock.x + CELL_SIZE / 2, clickedBlock.y + CELL_SIZE / 2, "ばらす！");
+                }
+            }
+        }
+
+        // --- 3-6. シーン遷移処理 (Scene Transitions) ---
+        function changeScene(scene) {
+            currentScene = scene;
+
+            titleOverlay.classList.remove('active');
+            resultOverlay.classList.remove('active');
+
+            if (scene === SCENE.TITLE) {
+                titleOverlay.classList.add('active');
+                setupTitleDemo();
+            } 
+            else if (scene === SCENE.GAME) {
+                setupGame();
+            } 
+            else if (scene === SCENE.RESULT) {
+                resultOverlay.classList.add('active');
+                finalScore.textContent = score;
+            }
+        }
+
+        // ゲーム初期配置
+        function setupGame() {
+            score = 0;
+            timeLeft = GAME_DURATION; // 制限時間30秒
+            selectedGroup = null;
+            shippingBlocks = [];
+            particles = [];
+            activeGroups = [];
+            board = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+
+            hudScore.textContent = score;
+            hudTime.textContent = `${timeLeft.toFixed(1)}s`;
+
+            // 色リストのシャッフル初期化
+            unusedColors = [...COLOR_POOL];
+            activeColors = [];
+            shuffleArray(unusedColors);
+
+            // 最初にランダムに3色選んで配置する (合計12個の1x1ブロック)
+            for (let i = 0; i < 3; i++) {
+                spawnNewColor();
+            }
+
+            // 初期配置での隣接ブロックをマージする
+            let mergedAny = true;
+            while (mergedAny) {
+                mergedAny = false;
+                for (const group of activeGroups) {
+                    if (checkAndMergeAdjacent(group)) {
+                        mergedAny = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // デモ用タイトル画面
+        function setupTitleDemo() {
+            board = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+            activeGroups = [];
+            shippingBlocks = [];
+            particles = [];
+
+            // 3色を配置
+            unusedColors = [...COLOR_POOL];
+            activeColors = [];
+            for (let i = 0; i < 3; i++) {
+                spawnNewColor();
+            }
+
+            // 初期配置での隣接ブロックをマージする
+            let mergedAny = true;
+            while (mergedAny) {
+                mergedAny = false;
+                for (const group of activeGroups) {
+                    if (checkAndMergeAdjacent(group)) {
+                        mergedAny = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 新しい色を盤面に補充する (4つのバラバラな1x1ブロックを配置)
+        function spawnNewColor() {
+            if (unusedColors.length === 0) {
+                unusedColors = [...COLOR_POOL].filter(c => !activeColors.includes(c));
+                shuffleArray(unusedColors);
+            }
+
+            // 使用していない色から1つ抽出
+            const color = unusedColors.pop();
+            activeColors.push(color);
+
+            // 4個の1x1ブロックを空いているランダムなセルに配置
+            let placed = 0;
+            while (placed < 4) {
+                const gx = Math.floor(Math.random() * GRID_SIZE);
+                const gy = Math.floor(Math.random() * GRID_SIZE);
+
+                if (!board[gy][gx]) {
+                    const block = new Block(gx, gy, color);
+                    board[gy][gx] = block;
+
+                    // それぞれ独立した BlockGroup (サイズ1) として配置
+                    const group = new BlockGroup(color);
+                    group.addBlock(block);
+                    activeGroups.push(group);
+
+                    placed++;
+                }
+            }
+        }
+
+        // --- 3-7. パズル連結 & 形状判定ロジック (Merging & Matching) ---
+
+        // 隣接する同色のグループを探してマージする（マージが発生したらtrueを返す）
+        function checkAndMergeAdjacent(group) {
+            for (const b of group.blocks) {
+                const directions = [
+                    { x: 0, y: -1 }, // 上
+                    { x: 0, y: 1 },  // 下
+                    { x: -1, y: 0 }, // 左
+                    { x: 1, y: 0 }   // 右
+                ];
+                for (const d of directions) {
+                    const nx = b.gridX + d.x;
+                    const ny = b.gridY + d.y;
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                        const neighbor = board[ny][nx];
+                        if (neighbor && neighbor.color === group.color && neighbor.group !== group) {
+                            mergeGroups(group, neighbor.group);
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 移動または回転が終わったあとのグループ処理
+        function handlePostMove(group) {
+            const merged = checkAndMergeAdjacent(group);
+            if (merged) {
+                handlePostMove(group);
+                return;
+            }
+
+            // マージが落ち着いたら、グループ数がちょうど4つになっているか完成レシピ判定を行う
+            if (group.blocks.length === 4) {
+                const shapeStr = getNormalizedShapeString(group.blocks);
+                const recipe = RECIPES[group.color];
+
+                if (recipe && recipe.patterns.includes(shapeStr)) {
+                    // レシピ通りの形になったら、出荷して消去！
+                    shipGroup(group);
+                }
+            }
+        }
+
+        // 2つのグループを合体（マージ）させる
+        function mergeGroups(targetGroup, sourceGroup) {
+            sourceGroup.blocks.forEach(b => {
+                targetGroup.addBlock(b);
+            });
+
+            // 選択中のグループがマージされて消える側の場合は、マージ先に選択を引き継ぐ
+            if (selectedGroup === sourceGroup) {
+                selectedGroup = targetGroup;
+            }
+
+            // マージされたグループリストからsourceGroupを除外
+            const idx = activeGroups.indexOf(sourceGroup);
+            if (idx > -1) {
+                activeGroups.splice(idx, 1);
+            }
+        }
+
+        // 4ブロックの相対位置を正規化してキー文字列に直す
+        function getNormalizedShapeString(blocks) {
+            const minX = Math.min(...blocks.map(b => b.gridX));
+            const minY = Math.min(...blocks.map(b => b.gridY));
+
+            const relative = blocks.map(b => ({
+                rx: b.gridX - minX,
+                ry: b.gridY - minY
+            }));
+
+            // ソート
+            relative.sort((a, b) => {
+                if (a.ry !== b.ry) return a.ry - b.ry;
+                return a.rx - b.rx;
+            });
+
+            return relative.map(c => `${c.rx},${c.ry}`).join('|');
+        }
+
+        // レシピ形状になったグループの出荷・スコア化処理
+        function shipGroup(group) {
+            score += 100; // 1つ完成につきスコア100点加算 (減点要素なし)
+            hudScore.textContent = score;
+
+            // 選択中のグループが出荷された場合、選択状態を解除する
+            if (selectedGroup === group) {
+                selectedGroup = null;
+            }
+
+            // スコアラベルのポップアップ位置 (グループの中心)
+            const avgX = group.blocks.reduce((sum, b) => sum + b.x, 0) / 4 + CELL_SIZE / 2;
+            const avgY = group.blocks.reduce((sum, b) => sum + b.y, 0) / 4 + CELL_SIZE / 2;
+            spawnScorePopup(avgX, avgY, "+100");
+
+            // グループ内の各ブロックを出荷リストに移し、グリッド盤面から消去
+            group.blocks.forEach(b => {
+                board[b.gridY][b.gridX] = null;
+                b.status = 'shipping';
+                // 右側にすっ飛んでいく速度
+                b.vx = Math.random() * 6 + 12;
+                b.vy = -(Math.random() * 6 + 8);
+                shippingBlocks.push(b);
+            });
+
+            // 弾ける星パーティクル
+            createStars(avgX, avgY, group.color, 25);
+
+            // このグループをアクティブリストから削除
+            const idx = activeGroups.indexOf(group);
+            if (idx > -1) activeGroups.splice(idx, 1);
+
+            // 盤面のアクティブな色リストから除外し、待機プールへ戻す
+            const colorIdx = activeColors.indexOf(group.color);
+            if (colorIdx > -1) activeColors.splice(colorIdx, 1);
+
+            // 新たな色を1色盤面にスポーンする
+            spawnNewColor();
+        }
+
+        // --- 3-8. 演出系ヘルパー関数 ---
+        
+        function spawnScorePopup(x, y, text) {
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = text;
+            popup.style.left = `${x + canvas.offsetLeft}px`;
+            popup.style.top = `${y + canvas.offsetTop}px`;
+            document.querySelector('.canvas-area').appendChild(popup);
+
+            setTimeout(() => popup.remove(), 800);
+        }
+
+        function createStars(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: Math.random() * 8 + 4,
+                    color: color,
+                    alpha: 1,
+                    decay: Math.random() * 0.04 + 0.02,
+                    rotation: Math.random() * Math.PI,
+                    rotSpeed: (Math.random() - 0.5) * 0.2
+                });
+            }
+        }
+
+        // シャッフル用ユーティリティ
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // 濃い枠線色の算出
+        function varColorToDark(hex) {
+            const darkMap = {
+                '#06b6d4': '#0891b2',
+                '#eab308': '#ca8a04',
+                '#a855f7': '#7e22ce',
+                '#22c55e': '#15803d',
+                '#ef4444': '#b91c1c',
+                '#3b82f6': '#1d4ed8',
+                '#f97316': '#c2410c'
+            };
+            return darkMap[hex] || '#000000';
+        }
+
+        // 角丸四角形を描画するヘルパー関数
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        // --- 3-9. 更新処理 (Update Logic) ---
+        function update(deltaTime) {
+            if (currentScene === SCENE.GAME) {
+                timeLeft -= deltaTime;
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    changeScene(SCENE.RESULT);
+                }
+                hudTime.textContent = `${timeLeft.toFixed(1)}s`;
+            }
+
+            // 各グループの更新 (配列変更によるバグを防ぐためコピーを使用)
+            [...activeGroups].forEach(group => group.update(deltaTime));
+
+            // 出荷中ブロックの更新
+            shippingBlocks = shippingBlocks.filter(block => {
+                return block.update(deltaTime);
+            });
+
+            // パーティクルの更新
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                p.rotation += p.rotSpeed;
+            });
+            particles = particles.filter(p => p.alpha > 0);
+        }
+
+        // --- 3-10. 描画処理 (Draw Logic) ---
+        function draw() {
+            // 背景クリア (ねんど盤面カラー)
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+            // 太い格子グリッドの描画
+            ctx.strokeStyle = '#fde68a';
+            ctx.lineWidth = 3;
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                ctx.beginPath(); ctx.moveTo(i * CELL_SIZE, 0); ctx.lineTo(i * CELL_SIZE, CANVAS_SIZE); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i * CELL_SIZE); ctx.lineTo(CANVAS_SIZE, i * CELL_SIZE); ctx.stroke();
+            }
+
+            // アクティブなブロックグループの描画
+            activeGroups.forEach(group => group.draw(ctx));
+
+            // 出荷中のブロックの描画
+            shippingBlocks.forEach(b => b.draw(ctx));
+
+            // パーティクル（星）の描画
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2;
+                
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation);
+
+                drawStar(ctx, 0, 0, 5, p.size, p.size / 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.restore();
+            });
+        }
+
+        // 星パスの構築
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            const step = Math.PI / spikes;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius; y = cy + Math.sin(rot) * outerRadius; ctx.lineTo(x, y); rot += step;
+                x = cx + Math.cos(rot) * innerRadius; y = cy + Math.sin(rot) * innerRadius; ctx.lineTo(x, y); rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+        }
+
+        // --- 3-11. メインループ (Game Loop) ---
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            update(deltaTime);
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- 3-12. ゲームの開始エントリーポイント ---
+        buildRecipeListUI();
+        init();
+
+    </script>
+</body>
+</html>
